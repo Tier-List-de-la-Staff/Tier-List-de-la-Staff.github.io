@@ -111,9 +111,9 @@ h1 .l2::after{
   box-shadow:6px 6px 0 var(--ink);
   transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s cubic-bezier(.2,.8,.2,1);
 }
-a.card:hover,a.card:focus-visible{transform:translate(-3px,-3px);box-shadow:10px 10px 0 var(--ink)}
-a.card:active{transform:translate(4px,4px);box-shadow:2px 2px 0 var(--ink)}
-a.card:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+.card.live:hover,.card.live:focus-visible{transform:translate(-3px,-3px);box-shadow:10px 10px 0 var(--ink)}
+.card.live:active{transform:translate(4px,4px);box-shadow:2px 2px 0 var(--ink)}
+.card.live:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
 .num{font-family:var(--font-display);font-weight:800;font-size:13px;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center}
 .tag{font-family:var(--font-body);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
   padding:4px 10px;border:2px solid var(--ink);border-radius:99px;background:var(--t5);color:#1d1a21}
@@ -132,22 +132,34 @@ a.card:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
 .mini div:nth-child(3) em{background:var(--t3)}
 .mini div:nth-child(4) em{background:var(--t4)}
 .mini div:nth-child(5) em{background:var(--t5)}
-a.card:hover .mini s{background:var(--ink)}
-a.card:hover .mini div:nth-child(odd) s{transform:translateX(8px)}
-a.card:hover .mini div:nth-child(even) s{transform:translateX(16px)}
+.card.live:hover .mini s{background:var(--ink)}
+.card.live:hover .mini div:nth-child(odd) s{transform:translateX(8px)}
+.card.live:hover .mini div:nth-child(even) s{transform:translateX(16px)}
 
 .card h3{font-family:var(--font-display);font-weight:800;font-size:clamp(24px,3vw,30px);line-height:1.05;letter-spacing:-.025em;margin:0}
 .card p{margin:8px 0 0;color:var(--muted);font-size:15px}
+.actions{display:flex;flex-direction:column;gap:12px;padding-top:16px;border-top:2px solid var(--ink)}
 .go{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
-  font-weight:600;font-size:15px;padding-top:16px;border-top:2px solid var(--ink);
+  font-weight:600;font-size:15px;color:inherit;text-decoration:none;
 }
+/* le lien principal couvre toute la carte */
+.go.main::after{content:"";position:absolute;inset:0;border-radius:8px}
+.card.live:has(.go:focus-visible){outline:3px solid var(--accent);outline-offset:4px}
+.go:focus-visible{outline:none}
+.go.alt{
+  position:relative;z-index:2;align-self:flex-start;font-size:14px;
+  padding:7px 14px;border:2px solid var(--ink);border-radius:99px;background:var(--paper);
+  transition:background .15s,color .15s;
+}
+.go.alt:hover,.go.alt:focus-visible{background:var(--ink);color:var(--bg)}
+.go.alt:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .go b{
   width:38px;height:38px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;
   background:var(--ink);color:var(--bg);transition:transform .25s cubic-bezier(.2,.8,.2,1),background .2s;
 }
 .go svg{width:18px;height:18px}
-a.card:hover .go b{transform:rotate(-45deg);background:var(--t3);color:#1d1a21}
+.card.live:hover .go b{transform:rotate(-45deg);background:var(--t3);color:#1d1a21}
 
 /* placeholder */
 .card.soon{
@@ -232,8 +244,8 @@ footer{
   </div>
 
   <div class="grid">
-    <!-- Pour ajouter une tier list : dupliquer ce bloc <a class="card"> et changer href, titre, description. -->
-    <a class="card rise" href="chanson-francaise.html">
+    <!-- Pour ajouter une tier list : dupliquer ce bloc <article class="card live"> et changer les deux href, le titre et la description. -->
+    <article class="card live rise">
       <div class="num"><span>01</span><span class="tag">Ouvert</span></div>
       <div>
         <h3>Chanson française</h3>
@@ -246,11 +258,14 @@ footer{
         <div><em></em><u><s></s><s></s></u></div>
         <div><em></em><u><s></s></u></div>
       </div>
-      <div class="go">
-        <span>Faire ma tier list</span>
-        <b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></b>
+      <div class="actions">
+        <a class="go main" href="chanson-francaise/">
+          <span>Faire ma tier list</span>
+          <b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></b>
+        </a>
+        <a class="go alt" href="chanson-francaise/verdict.html">Voir le verdict</a>
       </div>
-    </a>
+    </article>
 
     <div class="card soon rise" aria-label="Prochainement">
       <div class="plus" aria-hidden="true">+</div>
