@@ -240,38 +240,11 @@ footer{
 <main class="wrap" id="liste">
   <div class="shead">
     <h2>Toutes les tier lists</h2>
-    <small>01 disponible</small>
+    <small id="count"></small>
   </div>
 
-  <div class="grid">
-    <!-- Pour ajouter une tier list : dupliquer ce bloc <article class="card live"> et changer les deux href, le titre et la description. -->
-    <article class="card live rise">
-      <div class="num"><span>01</span><span class="tag">Ouvert</span></div>
-      <div>
-        <h3>Chanson française</h3>
-        <p>Les artistes d'ici, des légendes vivantes aux surcôtés. Glisse les photos dans le bon tier.</p>
-      </div>
-      <div class="mini" aria-hidden="true">
-        <div><em></em><u><s></s><s></s></u></div>
-        <div><em></em><u><s></s><s></s><s></s></u></div>
-        <div><em></em><u><s></s><s></s><s></s><s></s></u></div>
-        <div><em></em><u><s></s><s></s></u></div>
-        <div><em></em><u><s></s></u></div>
-      </div>
-      <div class="actions">
-        <a class="go main" href="chanson-francaise/">
-          <span>Faire ma tier list</span>
-          <b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></b>
-        </a>
-        <a class="go alt" href="chanson-francaise/verdict.html">Voir le verdict</a>
-      </div>
-    </article>
-
-    <div class="card soon rise" aria-label="Prochainement">
-      <div class="plus" aria-hidden="true">+</div>
-      <h3>Bientôt</h3>
-      <p>La prochaine tier list arrive. Reviens vite.</p>
-    </div>
+  <div class="grid" id="grid">
+    <noscript><p>Active JavaScript pour voir les tier lists.</p></noscript>
   </div>
 </main>
 
@@ -279,5 +252,33 @@ footer{
   <span>Tier lists · fait pour le plaisir de débattre</span>
   <span>Hébergé sur GitHub Pages</span>
 </footer>
+<!-- La liste des tier lists se modifie dans listes.js -->
+<script src="listes.js"></script>
+<script>
+(function(){
+  const L = Array.isArray(window.LISTES) ? window.LISTES : [];
+  const esc = s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const mini = '<div class="mini" aria-hidden="true"><div><em></em><u><s></s><s></s></u></div><div><em></em><u><s></s><s></s><s></s></u></div><div><em></em><u><s></s><s></s><s></s><s></s></u></div><div><em></em><u><s></s><s></s></u></div><div><em></em><u><s></s></u></div></div>';
+  const arrow = '<b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></b>';
+  const cards = L.map((l,i)=>`
+    <article class="card live rise">
+      <div class="num"><span>${String(i+1).padStart(2,"0")}</span><span class="tag">${esc(l.statut||"Ouvert")}</span></div>
+      <div><h3>${esc(l.titre)}</h3><p>${esc(l.description)}</p></div>
+      ${mini}
+      <div class="actions">
+        <a class="go main" href="${esc(l.dossier)}/"><span>Faire ma tier list</span>${arrow}</a>
+        <a class="go alt" href="${esc(l.dossier)}/verdict.html">Voir le verdict</a>
+      </div>
+    </article>`).join("");
+  const soon = `
+    <div class="card soon rise" aria-label="Prochainement">
+      <div class="plus" aria-hidden="true">+</div>
+      <h3>Bientôt</h3>
+      <p>La prochaine tier list arrive. Reviens vite.</p>
+    </div>`;
+  document.getElementById("grid").innerHTML = cards + soon;
+  document.getElementById("count").textContent = String(L.length).padStart(2,"0") + (L.length>1 ? " disponibles" : " disponible");
+})();
+</script>
 </body>
 </html>
