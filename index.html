@@ -253,7 +253,7 @@ footer{
   <span>Hébergé sur GitHub Pages</span>
 </footer>
 <!-- La liste des tier lists se modifie dans listes.js -->
-<script src="listes.js"></script>
+<script>document.write('<script src="listes.js?t='+Date.now()+'"><\/script>')</script>
 <script>
 (function(){
   const L = (Array.isArray(window.LISTES) ? window.LISTES : []).filter(l => l.actif !== false);
