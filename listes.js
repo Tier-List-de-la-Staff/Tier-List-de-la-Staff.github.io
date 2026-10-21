@@ -16,5 +16,12 @@ window.LISTES = [
     description: "Pop, rap, électro : les têtes d'affiche françaises des années 2000 à aujourd'hui.",
     statut: "Nouveau",
     actif: false
+  },
+  {
+    dossier: "fruits",
+    titre: "Meilleurs fruits",
+    description: "De la fraise à la noix de coco : quel fruit mérite la première place ? Un seul peut gagner.",
+    statut: "Nouveau",
+    actif: true
   }
 ];
