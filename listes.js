@@ -7,5 +7,11 @@ window.LISTES = [
     titre: "Chanson française",
     description: "Les artistes d'ici, des légendes vivantes aux surcôtés. Glisse les photos dans le bon tier.",
     statut: "Ouvert"
+  },
+  {
+    dossier: "musique-actuelle",
+    titre: "Musique actuelle",
+    description: "Pop, rap, électro : les têtes d'affiche françaises des années 2000 à aujourd'hui.",
+    statut: "Nouveau"
   }
 ];
