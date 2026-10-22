@@ -23,5 +23,12 @@ window.LISTES = [
     description: "De la fraise à la noix de coco : quel fruit mérite la première place ? Un seul peut gagner.",
     statut: "Nouveau",
     actif: true
+  },
+  {
+    dossier: "fraude-detournement",
+    titre: "Fraude et détournement de fonds",
+    description: "Du génie de l'escroquerie au petit joueur : qui mérite la première place ? Un seul Goat.",
+    statut: "Nouveau",
+    actif: true
   }
 ];
