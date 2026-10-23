@@ -6,11 +6,11 @@ window.TIERLIST = {
   mots: { un: "une ville", ce: "cette ville", pluriel: "villes" },
   afficherNoms: true,
   tiers: [
-    { id: "s", nom: "J'y déménage pour la vie",                     court: "J'y déménage pour la vie", couleur: "#ff7f7f" },
+    { id: "s", nom: "J'y déménage pour la vie",                     court: "J'y déménage pour la vie", couleur: "#ff7f7f", max: 1, note: "1 seule possible" },
     { id: "a", nom: "Coup de cœur",                                court: "Coup de cœur",    couleur: "#ffbf7f" },
     { id: "b", nom: "Ça se visite",                                court: "Ça se visite",    couleur: "#ffdf7f" },
     { id: "c", nom: "J'y vais seulement si on me paie",            court: "Si on me paie",   couleur: "#ffff7f" },
-    { id: "d", nom: "Pas une perte en cas de tremblement de terre", court: "Pas une perte",   couleur: "#bfff7f" }
+    { id: "d", nom: "Pas une perte en cas de tremblement de terre", court: "Pas une perte",   couleur: "#bfff7f", max: 1, note: "1 seule possible" }
   ],
   elements: [
     { nom: "Annecy", image: "img/annecy.jpg" },
