@@ -30,5 +30,12 @@ window.LISTES = [
     description: "Du génie de l'escroquerie au petit joueur : qui mérite la première place ? Un seul Goat.",
     statut: "Nouveau",
     actif: true
+  },
+  {
+    dossier: "arrondissements-paris",
+    titre: "Arrondissements de Paris",
+    description: "Du 1er au 20e : lequel est le meilleur, et lequel tu fuis ? Un seul gagnant, un seul à éviter.",
+    statut: "Nouveau",
+    actif: true
   }
 ];
