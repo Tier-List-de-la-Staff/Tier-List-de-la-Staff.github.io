@@ -37,5 +37,12 @@ window.LISTES = [
     description: "Du 1er au 20e : lequel est le meilleur, et lequel tu fuis ? Un seul gagnant, un seul à éviter.",
     statut: "Nouveau",
     actif: true
+  },
+  {
+    dossier: "villes-france",
+    titre: "Villes de France",
+    description: "De Paris à Basse-sur-le-Rupt : quelle ville mérite le S, et laquelle tu fuis ?",
+    statut: "Nouveau",
+    actif: true
   }
 ];

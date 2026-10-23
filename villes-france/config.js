@@ -1,0 +1,47 @@
+// Configuration de la tier list « villes de France ».
+window.TIERLIST = {
+  id: "villes-france",
+  titre: "Tier list des villes de France",
+  consigne: "Glissez chaque ville dans un tier, ou touchez une photo puis la ligne voulue.",
+  mots: { un: "une ville", ce: "cette ville", pluriel: "villes" },
+  afficherNoms: true,
+  tiers: [
+    { id: "s", nom: "S", court: "S", couleur: "#ff7f7f" },
+    { id: "a", nom: "A", court: "A", couleur: "#ffbf7f" },
+    { id: "b", nom: "B", court: "B", couleur: "#ffdf7f" },
+    { id: "c", nom: "C", court: "C", couleur: "#ffff7f" },
+    { id: "d", nom: "D", court: "D", couleur: "#bfff7f" }
+  ],
+  elements: [
+    { nom: "Annecy", image: "img/annecy.jpg" },
+    { nom: "Arras", image: "img/arras.jpg" },
+    { nom: "Basse-sur-le-Rupt", image: "img/basse-sur-le-rupt.jpg" },
+    { nom: "Beuvillers", image: "img/beuvillers.jpg" },
+    { nom: "Béziers", image: "img/beziers.jpg" },
+    { nom: "Boulogne-Billancourt", image: "img/boulogne-billancourt.jpg" },
+    { nom: "Caen", image: "img/caen.jpg" },
+    { nom: "Courbevoie", image: "img/courbevoie.jpg" },
+    { nom: "Deauville", image: "img/deauville.jpg" },
+    { nom: "Grenoble", image: "img/grenoble.jpg" },
+    { nom: "Guentrange (Thionville)", image: "img/guentrange-thionville.jpg" },
+    { nom: "Île de Ré", image: "img/ile-de-re.jpg" },
+    { nom: "La Baule", image: "img/la-baule.jpg" },
+    { nom: "La Rochelle", image: "img/la-rochelle.jpg" },
+    { nom: "Lille", image: "img/lille.jpg" },
+    { nom: "Lyon", image: "img/lyon.jpg" },
+    { nom: "Marseille", image: "img/marseille.jpg" },
+    { nom: "Nancy", image: "img/nancy.jpg" },
+    { nom: "Nantes", image: "img/nantes.jpg" },
+    { nom: "Narbonne", image: "img/narbonne.jpg" },
+    { nom: "Paris", image: "img/paris.jpg" },
+    { nom: "Roubaix", image: "img/roubaix.jpg" },
+    { nom: "Saint-Étienne", image: "img/saint-etienne.jpg" },
+    { nom: "Saint-Germain-en-Laye", image: "img/saint-germain-en-laye.jpg" },
+    { nom: "Saint-Jean-de-Maurienne", image: "img/saint-jean-de-maurienne.jpg" },
+    { nom: "Saint-Denis", image: "img/saint-denis.jpg" },
+    { nom: "Strasbourg", image: "img/strasbourg.jpg" },
+    { nom: "Thonon-les-Bains", image: "img/thonon-les-bains.jpg" },
+    { nom: "Toulouse", image: "img/toulouse.jpg" },
+    { nom: "Versailles", image: "img/versailles.jpg" }
+  ]
+};
