@@ -9,9 +9,14 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Figtree:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="jeu.css">
 <style>
-.join { display: flex; flex-direction: column; gap: 10px; }
-.who { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; color: var(--mist); }
-.who strong { color: var(--bone); }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.me { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; max-width: 280px; }
+.me label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--mist); font-weight: 600; white-space: nowrap; }
+.me input { padding: 8px 10px; font-size: 16px; }
+.me input.set { border-color: var(--good); }
+.links { display: flex; gap: 14px; font-weight: 600; }
+.links a { color: var(--mist); text-decoration: none; }
+.links a.next { color: var(--candle); }
 .one-top { display: flex; justify-content: space-between; align-items: baseline; }
 .one-top h2 { font-size: 26px; }
 .one-top small { color: var(--mist); }
@@ -24,40 +29,36 @@
 .lift.done .ghost, .lift.done .verdict { transition: none; }
 .verdict.vrai { background: var(--good); color: #0d2416; }
 .verdict.faux { background: var(--bad); color: #2a0909; }
-.nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.score { color: var(--mist); font-size: 14px; }
+.answer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.answer .btn { min-width: 120px; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--mist); font-size: 14px; }
 .end { text-align: center; align-items: center; }
 .end .big { font-family: var(--font-display); font-size: 64px; line-height: 1; color: var(--candle); }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <nav class="topnav">
-    <a href="../">&larr; Menu</a>
-    <a class="next" href="classement.html">Voir le classement &rarr;</a>
-  </nav>
+  <div class="bar">
+    <div class="me">
+      <label for="first">Prénom</label>
+      <input type="text" id="first" autocomplete="given-name" placeholder="Ton prénom" maxlength="40">
+    </div>
+    <nav class="links"><a href="../">&larr; Menu</a><a class="next" href="classement.html">Classement &rarr;</a></nav>
+  </div>
   <header>
     <h1>Qui se cache <span>?</span></h1>
     <p class="tag">21 fantômes, 21 paires d'yeux. Écris le prénom du collègue caché sous chaque drap : le fantôme s'envole et tu sais tout de suite si c'est vrai ou faux.</p>
   </header>
 
-  <section class="panel" id="v-join" hidden>
-    <form class="join" id="join-form">
-      <label class="label" for="first">Ton prénom</label>
-      <input type="text" id="first" autocomplete="given-name" placeholder="Ex. Camille" maxlength="40">
-      <button class="btn primary" type="submit">Commencer</button>
-    </form>
-    <p class="hint">Majuscules, accents et trémas ne comptent pas. Une réponse validée ne se change plus.</p>
-    <p class="status" id="join-status" aria-live="polite"></p>
-  </section>
-
-  <section class="panel" id="v-play" hidden>
-    <div class="who"><span>Tu joues en tant que <strong id="who-name"></strong></span><button class="linkish" id="who-edit" type="button">Changer de prénom</button></div>
+  <section class="panel" id="v-play">
     <div class="one-top"><h2 id="counter"></h2><small id="counter-sub"></small></div>
     <div class="lift" id="lift"><img class="photo" id="photo" alt=""><img class="ghost" id="ghost" alt=""><span class="verdict" id="verdict"></span></div>
-    <input type="text" id="guess" placeholder="C'est…" maxlength="60" enterkeyhint="done" aria-label="Ta réponse">
-    <div class="nav"><button class="btn" id="prev" type="button">&larr; Précédent</button><button class="btn primary" id="main" type="button">Valider</button></div>
-    <div class="score" id="score"></div>
+    <div class="answer">
+      <input type="text" id="guess" placeholder="C'est…" maxlength="60" enterkeyhint="done" aria-label="Ta réponse">
+      <button class="btn primary" id="main" type="button">Valider</button>
+    </div>
+    <p class="status" id="status" aria-live="polite"></p>
+    <div class="foot"><button class="linkish" id="prev" type="button">&larr; Précédent</button><span id="score"></span></div>
   </section>
 
   <section class="panel end" id="v-end" hidden>
@@ -85,27 +86,23 @@
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(me)); } catch (e) {} };
   const done = () => Object.keys(me.locked).length;
   const good = () => Object.keys(me.locked).filter(k => isCorrect(me.guesses[k], NOMS[+k - 1])).length;
-  const docRef = (fs, db) => fs.doc(db, window.SITE.collection, JEU + "__" + me.name.toLowerCase());
+  const refFor = (fs, db, name) => fs.doc(db, window.SITE.collection, JEU + "__" + name.toLowerCase());
 
-  function show(v) { ["join", "play", "end"].forEach(x => { $("v-" + x).hidden = x !== v; }); }
+  function show(v) { $("v-play").hidden = v !== "play"; $("v-end").hidden = v !== "end"; }
 
-  /* ---------- Prénom ---------- */
-  $("join-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const v = $("first").value.trim().replace(/\//g, "");
-    if (!v) { $("first").focus(); return; }
-    $("join-status").textContent = "…";
+  /* ---------- Prénom (en haut à gauche) ---------- */
+  // Modifiable tant qu'aucune réponse n'est validée, figé ensuite.
+  function renderName() {
+    const f = $("first"); f.value = me.name; f.disabled = done() > 0; f.classList.toggle("set", !!me.name);
+  }
+  $("first").addEventListener("input", () => { me.name = $("first").value.trim().replace(/\//g, ""); save(); $("first").classList.toggle("set", !!me.name); });
+  $("first").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("guess").focus(); } });
+  async function nameFree(name) {
     try {
       const { fs, db } = await window.chargerFirebase();
-      if ((await fs.getDoc(fs.doc(db, window.SITE.collection, JEU + "__" + v.toLowerCase()))).exists()) {
-        $("join-status").textContent = `Le prénom « ${v} » a déjà joué. Ajoute l'initiale de ton nom (ex. ${v} M.).`; return;
-      }
-    } catch (err) {}
-    $("join-status").textContent = "";
-    me.name = v; save();
-    cur = 0; render(); show("play");
-  });
-  $("who-edit").onclick = () => { $("first").value = me.name; me.name = ""; save(); show("join"); $("first").focus(); };
+      return !(await fs.getDoc(refFor(fs, db, name))).exists();
+    } catch (e) { return true; }
+  }
 
   /* ---------- Un fantôme ---------- */
   function setVerdict() {
@@ -115,8 +112,7 @@
   }
   function render() {
     const key = String(cur + 1), isDone = !!me.locked[key];
-    $("who-name").textContent = me.name;
-    $("who-edit").hidden = done() > 0;
+    renderName();
     $("counter").textContent = `Fantôme ${cur + 1}`;
     $("counter-sub").textContent = `sur ${N}`;
     const lift = $("lift");
@@ -127,25 +123,32 @@
     if (isDone) lift.classList.add("up");
     void lift.offsetWidth; if (!isDone) lift.classList.remove("done");
     const g = $("guess"); g.value = me.guesses[key] || ""; g.disabled = isDone;
-    $("prev").disabled = cur === 0;
+    $("prev").hidden = cur === 0;
     $("main").textContent = !isDone ? "Valider" : cur < N - 1 ? "Suivant →" : "Résultat →";
     $("score").textContent = `Score : ${good()} / ${done()}`;
-    if (!isDone) g.focus({ preventScroll: true });
+    $("status").textContent = "";
   }
-  function validate() {
+  async function validate() {
+    if (!me.name) { $("status").textContent = "Écris d'abord ton prénom en haut à gauche."; $("first").focus(); return; }
+    if (!done()) {
+      $("main").disabled = true;
+      const free = await nameFree(me.name);
+      $("main").disabled = false;
+      if (!free) { $("status").textContent = `Le prénom « ${me.name} » a déjà joué. Ajoute l'initiale de ton nom (ex. ${me.name} M.).`; $("first").focus(); return; }
+    }
     const key = String(cur + 1);
     me.guesses[key] = $("guess").value.trim(); me.locked[key] = true; save();
-    $("guess").disabled = true;
+    $("guess").disabled = true; $("status").textContent = "";
+    renderName();
     setVerdict();
     $("lift").classList.add("up");
     $("main").textContent = cur < N - 1 ? "Suivant →" : "Résultat →";
-    $("who-edit").hidden = true;
     $("score").textContent = `Score : ${good()} / ${done()}`;
     if (done() >= N && !me.sent) send();
   }
   $("main").onclick = () => {
     if (!me.locked[String(cur + 1)]) return validate();
-    if (cur < N - 1) { cur++; render(); }
+    if (cur < N - 1) { cur++; render(); $("guess").focus({ preventScroll: true }); }
     else end();
   };
   $("prev").onclick = () => { if (cur > 0) { cur--; render(); } };
@@ -156,7 +159,7 @@
     const s = good();
     $("final").textContent = `${s} / ${N}`;
     $("end-msg").textContent = s === N ? "Sans faute, tu connais tout le monde !" : s >= N * .7 ? "Bel œil !" : s >= N / 3 ? "Pas mal, mais certains t'ont bien eu." : "Les fantômes ont gagné cette fois.";
-    show("end");
+    renderName(); show("end");
     if (me.sent) $("send-status").textContent = "Score envoyé.";
     else send();
   }
@@ -166,10 +169,10 @@
     try {
       const { fs, db } = await window.chargerFirebase();
       try {
-        await fs.setDoc(docRef(fs, db), { tierlist: JEU, participant: me.name, guesses: me.guesses, date: Date.now() });
+        await fs.setDoc(refFor(fs, db, me.name), { tierlist: JEU, participant: me.name, guesses: me.guesses, date: Date.now() });
       } catch (e) {
         // Refusé si le document existe déjà : un envoi précédent a donc réussi.
-        if (!(await fs.getDoc(docRef(fs, db))).exists()) throw e;
+        if (!(await fs.getDoc(refFor(fs, db, me.name))).exists()) throw e;
       }
       me.sent = true; save();
       $("send-status").textContent = "Score envoyé.";
@@ -182,8 +185,7 @@
   $("review").onclick = () => { cur = 0; render(); show("play"); };
 
   /* ---------- Démarrage ---------- */
-  if (!me.name) show("join");
-  else if (done() >= N) end();
+  if (done() >= N) end();
   else { cur = Math.min(N - 1, done()); render(); show("play"); }
 })();
 </script>

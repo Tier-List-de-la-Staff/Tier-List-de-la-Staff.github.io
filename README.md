@@ -30,7 +30,8 @@ et « Voir le classement » (`classement.html`).
   - `ghosts/01.jpg` à `21.jpg` : les fantômes ; `photos/01.jpg` à `21.jpg` : les vraies photos ;
     `noms.js` : les vrais prénoms, dans le même ordre. Attention : ces fichiers sont publics,
     un joueur malin peut lire les réponses.
-  - `index.html` : le joueur donne son prénom, puis un fantôme par écran. Il tape un prénom et valide ;
+  - `index.html` : le joueur écrit son prénom en haut à gauche, puis un fantôme par écran. Il tape un prénom
+    dans la case à côté du bouton et valide ;
     le fantôme s'envole, la photo apparaît avec « Vrai » ou « Faux ». Une réponse validée ne se change plus.
     Majuscules, accents et trémas ne comptent pas, le prénom seul suffit. Après le 21e, le score part
     dans Firebase (`submissions`, documents `qui-se-cache__prenom`). Un prénom ne joue qu'une fois.
