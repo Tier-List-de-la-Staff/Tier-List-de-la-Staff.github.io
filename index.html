@@ -266,8 +266,10 @@ footer{
       <div><h3>${esc(l.titre)}</h3><p>${esc(l.description)}</p></div>
       ${mini}
       <div class="actions">
-        <a class="go main" href="${esc(l.dossier)}/"><span>Faire ma tier list</span>${arrow}</a>
-        <a class="go alt" href="${esc(l.dossier)}/verdict.html">Voir le verdict</a>
+        ${l.type === "jeu"
+          ? `<a class="go main" href="${esc(l.dossier)}/"><span>Jouer</span>${arrow}</a>`
+          : `<a class="go main" href="${esc(l.dossier)}/"><span>Faire ma tier list</span>${arrow}</a>
+        <a class="go alt" href="${esc(l.dossier)}/verdict.html">Voir le verdict</a>`}
       </div>
     </article>`).join("");
   const soon = `

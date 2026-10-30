@@ -20,6 +20,16 @@ chanson-francaise/      une tier list = un dossier
   img/                  les images des éléments
 ```
 
+## Jeux
+
+Un jeu est une page autonome dans son propre dossier (pas de `config.js` ni de verdict).
+Dans `listes.js`, son bloc porte `type: "jeu"` : la carte du menu affiche alors un seul bouton « Jouer ».
+
+- `qui-se-cache/` : deviner quel collègue se cache sous chaque fantôme. Se joue en projection.
+  Onglet « Préparer » : saisir le vrai nom sous chaque fantôme (enregistré dans le navigateur de
+  l'ordinateur qui projette, pas sur GitHub). Clavier : ← → naviguer, Espace révéler, F plein écran.
+  Pour changer de fantômes : remplacer `qui-se-cache/ghosts/01.jpg` à `21.jpg`.
+
 ## Ajouter une tier list
 
 1. Copier le dossier `chanson-francaise` et le renommer, par exemple `fruits-legumes`

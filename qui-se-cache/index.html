@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Qui se cache ?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Figtree:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<style>
+/* Layout : une scène de séance — barre haute, onglets Préparer / Jouer, grande scène centrale + tableau des scores à droite. Thème sombre assumé (soirée fantômes). */
+:root {
+  --bg: #17131f;          /* nuit violine */
+  --bg-2: #211b2c;        /* panneaux */
+  --line: #3a3149;        /* filets */
+  --bone: #efe9f5;        /* texte, drap de fantôme */
+  --mist: #a99fbb;        /* texte secondaire */
+  --candle: #f0a35c;      /* accent bougie */
+  --candle-ink: #2a1806;
+  --good: #8fd3a8;
+  --font-display: "Grenze Gotisch", "Palatino Linotype", Georgia, serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: radial-gradient(1200px 600px at 50% -10%, #2b2238 0%, var(--bg) 60%) fixed, var(--bg);
+  color: var(--bone);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 20px;
+}
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(40px, 7vw, 64px); line-height: .95; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+h1 span { color: var(--candle); }
+.tag { color: var(--mist); margin: 6px 0 0; max-width: 52ch; }
+.tabs { display: flex; gap: 4px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+.tabs button { border-radius: 999px; padding: 8px 18px; border: 0; background: transparent; color: var(--mist); font: 600 14px var(--font-body); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--bone); color: var(--bg); }
+button, .btn { font: 600 14px var(--font-body); }
+:focus-visible { outline: 2px solid var(--candle); outline-offset: 2px; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-2); color: var(--bone); cursor: pointer; }
+.btn:hover { border-color: var(--mist); }
+.btn.primary { background: var(--candle); border-color: var(--candle); color: var(--candle-ink); }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn:disabled { opacity: .4; cursor: default; }
+kbd { font: 600 11px var(--font-body); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--mist); }
+
+/* ---- Préparer ---- */
+.setup { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .setup { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel h2 { font-family: var(--font-display); font-weight: 500; font-size: 26px; margin: 0; }
+.label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--mist); font-weight: 600; }
+.drop { border: 1.5px dashed var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: border-color .2s, background .2s; }
+.drop:hover, .drop.over { border-color: var(--candle); background: rgba(240,163,92,.06); }
+.drop strong { font-size: 15px; }
+.drop small { color: var(--mist); }
+.drop input { display: none; }
+.file-name { color: var(--good); font-size: 13px; overflow-wrap: anywhere; }
+select, input[type="text"] { width: 100%; background: var(--bg); color: var(--bone); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font: 15px var(--font-body); }
+.hint { color: var(--mist); font-size: 13px; margin: 0; }
+.status { font-size: 13px; color: var(--candle); min-height: 1.2em; margin: 0; }
+
+.cards-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.demo-badge { font-size: 12px; font-weight: 600; color: var(--candle-ink); background: var(--candle); border-radius: 999px; padding: 2px 10px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.card { display: flex; flex-direction: column; gap: 8px; }
+.thumbs { position: relative; aspect-ratio: 4 / 3; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); max-width: 100%; }
+.thumbs img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.thumbs .mini { position: absolute; right: 6px; bottom: 6px; width: 38%; height: 38%; border-radius: 6px; border: 2px solid var(--bone); object-fit: cover; background: #0f0c15; }
+.thumbs .num { position: absolute; left: 6px; top: 6px; font-size: 12px; font-weight: 700; color: var(--bone); background: rgba(23,19,31,.85); padding: 1px 7px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.card input { padding: 7px 9px; font-size: 14px; }
+
+/* ---- Jouer ---- */
+.play { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .play { grid-template-columns: minmax(0, 1fr); } }
+.stage-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.stage-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.counter { font-family: var(--font-display); font-size: 30px; font-variant-numeric: tabular-nums; }
+.counter small { font-family: var(--font-body); font-size: 14px; color: var(--mist); margin-left: 6px; }
+.stage {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; max-width: 100%;
+  border-radius: 18px; overflow: hidden; background: #fff; border: 1px solid var(--line);
+  box-shadow: 0 30px 80px -30px rgba(0,0,0,.7);
+}
+.stage:fullscreen { border-radius: 0; aspect-ratio: auto; }
+.layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.layer img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 3%; box-sizing: border-box; }
+.ghost-layer { transition: transform .9s cubic-bezier(.6,0,.2,1), opacity .9s ease; z-index: 2; }
+.ghost-layer img { animation: float 5s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-1.5%); } }
+.reveal-layer { z-index: 1; opacity: 0; transition: opacity .6s ease .35s; }
+.stage.revealed.has-photo .ghost-layer { transform: translateY(-110%); opacity: 0; }
+.stage.revealed .reveal-layer { opacity: 1; }
+.stage.revealed:not(.has-photo) .ghost-layer img { opacity: .35; animation: none; }
+.nameplate {
+  position: absolute; left: 50%; bottom: 6%; transform: translate(-50%, 20px); z-index: 3;
+  font-family: var(--font-display); font-size: clamp(28px, 5.5vw, 60px); line-height: 1;
+  background: var(--bg); color: var(--bone); padding: 10px 26px 14px; border-radius: 12px;
+  opacity: 0; transition: opacity .5s ease .6s, transform .5s ease .6s; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis;
+}
+.stage.revealed .nameplate.filled { opacity: 1; transform: translate(-50%, 0); }
+.empty-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--mist); text-align: center; padding: 20px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.controls .spacer { flex: 1; }
+.keys { color: var(--mist); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+
+.score { background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.score h2 { font-family: var(--font-display); font-weight: 500; font-size: 26px; margin: 0; }
+.players { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.players li { display: grid; grid-template-columns: minmax(0,1fr) auto auto auto auto; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 8px; background: var(--bg); }
+.players li.lead .pname::before { content: "★ "; color: var(--candle); }
+.pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pts { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: center; }
+.mini-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg-2); color: var(--bone); cursor: pointer; font: 700 15px var(--font-body); line-height: 1; }
+.mini-btn.del { color: var(--mist); border-color: transparent; background: transparent; }
+.add-player { display: flex; gap: 6px; }
+.add-player input { flex: 1; min-width: 0; }
+.add-player .btn { padding: 8px 12px; }
+
+/* ---- Répondre / Réponses ---- */
+.answer-wrap { display: flex; flex-direction: column; gap: 16px; }
+.join { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.join > div { flex: 1 1 220px; min-width: 0; }
+.who { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: var(--mist); }
+.who strong { color: var(--bone); font-size: 17px; }
+.linkish { background: none; border: 0; color: var(--candle); cursor: pointer; padding: 0; text-decoration: underline; }
+.progress { font-variant-numeric: tabular-nums; }
+.notice { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 12px 14px; color: var(--mist); margin: 0; }
+.notice.warn { border-color: var(--candle); color: var(--bone); }
+.card input.filled-in { border-color: var(--good); }
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table.grid { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+table.grid th, table.grid td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+table.grid thead th { position: sticky; top: 0; background: var(--bg-2); color: var(--mist); font-weight: 600; font-variant-numeric: tabular-nums; }
+table.grid th.player { position: sticky; left: 0; background: var(--bg-2); color: var(--bone); z-index: 1; }
+table.grid td.ok { color: var(--good); font-weight: 600; }
+table.grid td.ko { color: var(--mist); text-decoration: line-through; text-decoration-color: rgba(169,159,187,.5); }
+table.grid td.none { color: var(--line); }
+table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric: tabular-nums; }
+.guesses { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+.guesses li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 8px; border-radius: 7px; background: var(--bg); font-size: 14px; }
+.guesses li span:first-child { color: var(--mist); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guesses li span:last-child { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.guesses li.ok span:last-child { color: var(--good); }
+.guesses li.ok span:last-child::before { content: "✓ "; }
+.sub { font-size: 13px; color: var(--mist); margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost-layer, .reveal-layer, .nameplate { transition: opacity .2s ease; }
+  .ghost-layer img { animation: none; }
+  .stage.revealed.has-photo .ghost-layer { transform: none; }
+}
+</style>
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Qui se cache <span>?</span></h1>
+      <p class="tag">21 fantômes, 21 paires d'yeux. À vous de deviner quel collègue se cache sous chaque drap.</p>
+    </div>
+    <div class="tabs" role="tablist">
+      <button id="tab-play" role="tab" aria-selected="true">Jouer</button>
+      <button id="tab-answer" role="tab" aria-selected="false">Répondre</button>
+      <button id="tab-results" role="tab" aria-selected="false" hidden>Réponses</button>
+      <button id="tab-setup" role="tab" aria-selected="false" hidden>Préparer</button>
+    </div>
+  </header>
+
+  <!-- PRÉPARER -->
+  <section id="view-setup" class="setup" hidden>
+    <div class="panel">
+      <h2>Vos fichiers</h2>
+      <label class="drop" id="drop-ghosts">
+        <span class="label">PDF des fantômes</span>
+        <strong>Remplacer par un autre PDF</strong>
+        <small>Une page par fantôme. Le fichier reste dans votre navigateur.</small>
+        <span class="file-name" id="ghosts-name"></span>
+        <input type="file" id="file-ghosts" accept="application/pdf">
+      </label>
+
+      <div>
+        <label class="label" for="layout">Organisation du PDF</label>
+        <select id="layout">
+          <option value="ghosts">Fantômes uniquement</option>
+          <option value="alt">Alterné : fantôme, puis photo</option>
+          <option value="half">Tous les fantômes, puis toutes les photos</option>
+        </select>
+      </div>
+
+      <label class="drop" id="drop-reveals">
+        <span class="label">Photos de révélation (facultatif)</span>
+        <strong>PDF séparé avec les vraies photos</strong>
+        <small>Même ordre que les fantômes. Sans photo, seul le nom s'affiche.</small>
+        <span class="file-name" id="reveals-name"></span>
+        <input type="file" id="file-reveals" accept="application/pdf">
+      </label>
+      <p class="status" id="status" aria-live="polite"></p>
+    </div>
+
+    <div class="panel">
+      <div class="cards-head">
+        <h2>Réponses</h2>
+        <span class="demo-badge" id="demo-badge" hidden></span>
+      </div>
+      <p class="hint">Tapez le nom de la personne sous chaque fantôme. Il s'affiche au moment de la révélation et sert à corriger les réponses des joueurs. Seuls vous et les éditeurs de la page le voient.</p>
+      <p class="status" id="key-status" aria-live="polite"></p>
+      <div class="cards" id="cards"></div>
+      <div><button class="btn primary" id="go-play">Lancer la partie →</button></div>
+    </div>
+  </section>
+
+  <!-- JOUER -->
+  <section id="view-play" class="play">
+    <div class="stage-col">
+      <div class="stage-top">
+        <div class="counter" id="counter">Fantôme 1 <small>sur 1</small></div>
+        <div class="keys"><span><kbd>←</kbd> <kbd>→</kbd> naviguer</span><span><kbd>Espace</kbd> révéler</span><span><kbd>F</kbd> plein écran</span></div>
+      </div>
+      <div class="stage" id="stage">
+        <div class="layer reveal-layer" id="reveal-layer"></div>
+        <div class="layer ghost-layer" id="ghost-layer"></div>
+        <div class="nameplate" id="nameplate"></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="prev">← Précédent</button>
+        <button class="btn primary" id="reveal">Révéler</button>
+        <button class="btn" id="next">Suivant →</button>
+        <span class="spacer"></span>
+        <button class="btn" id="shuffle">Mélanger</button>
+        <button class="btn" id="fullscreen">Plein écran</button>
+      </div>
+    </div>
+
+    <aside class="score">
+      <div id="live-box" hidden>
+        <h2>Réponses des joueurs</h2>
+        <p class="sub" id="live-sub"></p>
+        <ul class="guesses" id="live-guesses"></ul>
+      </div>
+      <h2>Scores</h2>
+      <ul class="players" id="players"></ul>
+      <form class="add-player" id="add-player">
+        <input type="text" id="player-name" placeholder="Joueur ou équipe" aria-label="Nom du joueur ou de l'équipe">
+        <button class="btn" type="submit">Ajouter</button>
+      </form>
+    </aside>
+  </section>
+
+  <!-- RÉPONDRE (joueurs) -->
+  <section id="view-answer" class="answer-wrap" hidden>
+    <div class="panel">
+      <h2>Vos réponses</h2>
+      <p class="notice" id="answer-notice" hidden></p>
+      <form class="join" id="join-form">
+        <div>
+          <label class="label" for="player-first">Votre prénom</label>
+          <input type="text" id="player-first" autocomplete="given-name" placeholder="Ex. Camille" maxlength="40">
+        </div>
+        <button class="btn primary" type="submit">Commencer</button>
+      </form>
+      <div class="who" id="who" hidden>
+        <span>Vous jouez en tant que <strong id="who-name"></strong></span>
+        <button class="linkish" id="who-edit" type="button">Changer de prénom</button>
+        <span class="progress" id="answer-progress"></span>
+      </div>
+      <p class="hint" id="answer-hint">Écrivez sous chaque fantôme le nom du collègue que vous reconnaissez. Vos réponses s'enregistrent toutes seules et vous pouvez les modifier jusqu'à la fin du jeu. Les autres joueurs ne les voient pas.</p>
+      <p class="status" id="answer-status" aria-live="polite"></p>
+      <div class="cards" id="answer-cards"></div>
+    </div>
+  </section>
+
+  <!-- RÉPONSES (organisatrice) -->
+  <section id="view-results" class="answer-wrap" hidden>
+    <div class="panel">
+      <div class="cards-head">
+        <h2>Toutes les réponses</h2>
+        <span class="sub" id="results-sub"></span>
+      </div>
+      <p class="hint">Une ligne par joueur, une colonne par fantôme. Les bonnes réponses sont comptées dès que le nom du fantôme est renseigné dans « Préparer ».</p>
+      <div class="table-scroll"><table class="grid" id="results-table"></table></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const state = {
+    ghostPages: [], revealPages: [], separateReveals: [],
+    items: [], order: [], idx: 0, revealed: false, demo: true,
+    players: [{ name: "Équipe 1", pts: 0 }, { name: "Équipe 2", pts: 0 }]
+  };
+  const names = []; // noms saisis, par position
+
+  /* ---------- Fantômes d'exemple ---------- */
+  function demoGhost(i) {
+    const c = document.createElement("canvas"); c.width = 800; c.height = 600;
+    const g = c.getContext("2d");
+    const bg = g.createRadialGradient(400, 300, 50, 400, 300, 420);
+    bg.addColorStop(0, "#2a2236"); bg.addColorStop(1, "#110d17");
+    g.fillStyle = bg; g.fillRect(0, 0, 800, 600);
+    g.fillStyle = "#f3eef8";
+    g.beginPath(); g.moveTo(230, 560);
+    g.bezierCurveTo(200, 200, 280, 90, 400, 90);
+    g.bezierCurveTo(520, 90, 600, 200, 570, 560);
+    for (let k = 0; k < 5; k++) { const x = 570 - k * 68; g.quadraticCurveTo(x - 17, 520, x - 34, 560); g.quadraticCurveTo(x - 51, 600, x - 68, 560); }
+    g.fill();
+    const eyes = [["#4a7bd1", 26], ["#6b8f3a", 22], ["#7a4b2a", 28], ["#3c3c3c", 20]][i % 4];
+    [[345, 250], [455, 250]].forEach(([x, y]) => {
+      g.fillStyle = "#fff"; g.beginPath(); g.ellipse(x, y, 42, 30, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = eyes[0]; g.beginPath(); g.arc(x + (i % 2 ? 6 : -6), y, eyes[1], 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#111"; g.beginPath(); g.arc(x + (i % 2 ? 6 : -6), y, eyes[1] * .45, 0, Math.PI * 2); g.fill();
+    });
+    return c.toDataURL("image/png");
+  }
+  function loadDemo() {
+    state.ghostPages = [0, 1, 2, 3].map(demoGhost);
+    ["Exemple : Claire", "Exemple : Hugo", "Exemple : Inès", "Exemple : Marc"].forEach((n, i) => names[i] = n);
+    state.demo = true;
+    rebuild();
+  }
+
+  /* ---------- PDF ---------- */
+  const pdfjs = window.pdfjsLib;
+  if (pdfjs) pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+  async function renderPdf(file, label) {
+    if (!pdfjs) throw new Error("Le lecteur PDF n'a pas pu se charger. Rechargez la page.");
+    const data = new Uint8Array(await file.arrayBuffer());
+    const doc = await pdfjs.getDocument({ data }).promise;
+    const out = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      setStatus(`${label} : page ${p} sur ${doc.numPages}…`);
+      const page = await doc.getPage(p);
+      const base = page.getViewport({ scale: 1 });
+      const scale = Math.min(3, 1600 / Math.max(base.width, base.height));
+      const vp = page.getViewport({ scale });
+      const c = document.createElement("canvas");
+      c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+      await page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+      out.push(c.toDataURL("image/jpeg", 0.9));
+    }
+    return out;
+  }
+  function setStatus(t) { $("status").textContent = t; }
+
+  async function handleFile(kind, file) {
+    if (!file) return;
+    if (file.type && file.type !== "application/pdf") { setStatus("Ce fichier n'est pas un PDF. Exportez vos images en PDF puis réessayez."); return; }
+    try {
+      const pages = await renderPdf(file, kind === "ghosts" ? "Fantômes" : "Photos");
+      if (kind === "ghosts") {
+        if (state.demo) names.length = 0;
+        state.demo = false; state.ghostPages = pages; $("ghosts-name").textContent = `${file.name} · ${pages.length} pages`;
+      } else {
+        state.separateReveals = pages; $("reveals-name").textContent = `${file.name} · ${pages.length} pages`;
+      }
+      setStatus("");
+      rebuild();
+    } catch (e) {
+      setStatus("Impossible de lire ce PDF : " + (e && e.message ? e.message : "fichier illisible") + ".");
+    }
+  }
+  [["ghosts", "file-ghosts", "drop-ghosts"], ["reveals", "file-reveals", "drop-reveals"]].forEach(([kind, inputId, dropId]) => {
+    $(inputId).addEventListener("change", (e) => handleFile(kind, e.target.files[0]));
+    const d = $(dropId);
+    d.addEventListener("dragover", (e) => { e.preventDefault(); d.classList.add("over"); });
+    d.addEventListener("dragleave", () => d.classList.remove("over"));
+    d.addEventListener("drop", (e) => { e.preventDefault(); d.classList.remove("over"); handleFile(kind, e.dataTransfer.files[0]); });
+  });
+  $("layout").addEventListener("change", rebuild);
+
+  /* ---------- Construction des fantômes ---------- */
+  function rebuild() {
+    const pages = state.ghostPages, layout = $("layout").value;
+    let ghosts = pages, reveals = [];
+    if (layout === "alt") { ghosts = pages.filter((_, i) => i % 2 === 0); reveals = pages.filter((_, i) => i % 2 === 1); }
+    if (layout === "half") { const h = Math.ceil(pages.length / 2); ghosts = pages.slice(0, h); reveals = pages.slice(h); }
+    if (state.separateReveals.length) reveals = state.separateReveals;
+    state.items = ghosts.map((g, i) => ({ ghost: g, reveal: reveals[i] || null }));
+    state.order = state.items.map((_, i) => i);
+    state.idx = 0; state.revealed = false;
+    $("demo-badge").hidden = !state.demo;
+    renderCards(); renderStage();
+  }
+
+  function renderCards() {
+    const box = $("cards"); box.innerHTML = "";
+    state.items.forEach((it, i) => {
+      const card = document.createElement("div"); card.className = "card";
+      card.innerHTML = `<div class="thumbs"><img alt="Fantôme ${i + 1}"><span class="num">${i + 1}</span></div>`;
+      card.querySelector("img").src = it.ghost;
+      if (it.reveal) { const m = document.createElement("img"); m.className = "mini"; m.alt = "Photo"; m.src = it.reveal; card.querySelector(".thumbs").appendChild(m); }
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.id = "name-" + i; inp.placeholder = "Nom de la personne"; inp.value = names[i] || "";
+      inp.setAttribute("aria-label", "Nom du fantôme " + (i + 1));
+      inp.addEventListener("input", () => { names[i] = inp.value; saveKeySoon(); });
+      card.appendChild(inp); box.appendChild(card);
+    });
+    if (!state.items.length) box.innerHTML = '<p class="hint">Aucune page trouvée dans ce PDF.</p>';
+  }
+
+  /* ---------- Scène ---------- */
+  function renderStage() {
+    const st = $("stage"), n = state.order.length;
+    const gl = $("ghost-layer"), rl = $("reveal-layer"), np = $("nameplate");
+    st.classList.toggle("revealed", state.revealed);
+    if (!n) { gl.innerHTML = '<div class="empty-stage">Chargez un PDF dans « Préparer ».</div>'; rl.innerHTML = ""; np.textContent = ""; return; }
+    const realIdx = state.order[state.idx], it = state.items[realIdx];
+    $("counter").innerHTML = `Fantôme ${state.idx + 1} <small>sur ${n}</small>`;
+    if (gl.dataset.src !== it.ghost) { gl.innerHTML = ""; const im = new Image(); im.alt = "Fantôme mystère"; im.src = it.ghost; gl.appendChild(im); gl.dataset.src = it.ghost; }
+    rl.innerHTML = "";
+    if (it.reveal) { const im = new Image(); im.alt = "Photo révélée"; im.src = it.reveal; rl.appendChild(im); }
+    st.classList.toggle("has-photo", !!it.reveal);
+    const nm = (names[realIdx] || "").trim();
+    np.textContent = nm || "Alors, qui est-ce ?"; np.classList.add("filled");
+    $("reveal").textContent = state.revealed ? "Cacher" : "Révéler";
+    $("prev").disabled = state.idx === 0;
+    $("next").disabled = state.idx === n - 1;
+    renderLive();
+  }
+  function go(d) {
+    const n = state.order.length; if (!n) return;
+    const j = Math.max(0, Math.min(n - 1, state.idx + d));
+    if (j === state.idx) return;
+    state.idx = j; state.revealed = false; renderStage();
+  }
+  function toggleReveal() { if (!state.order.length) return; state.revealed = !state.revealed; renderStage(); }
+  $("prev").onclick = () => go(-1);
+  $("next").onclick = () => go(1);
+  $("reveal").onclick = toggleReveal;
+  $("shuffle").onclick = () => {
+    const o = state.order;
+    for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
+    state.idx = 0; state.revealed = false; renderStage();
+  };
+  $("fullscreen").onclick = () => {
+    const st = $("stage");
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else if (st.requestFullscreen) st.requestFullscreen().catch(() => {});
+    } catch (e) {}
+  };
+  document.addEventListener("keydown", (e) => {
+    if ($("view-play").hidden || e.target.matches("input, select, textarea")) return;
+    if (e.key === "ArrowRight") go(1);
+    else if (e.key === "ArrowLeft") go(-1);
+    else if (e.key === " " || e.key === "Enter") { e.preventDefault(); toggleReveal(); }
+    else if (e.key === "f" || e.key === "F") $("fullscreen").click();
+  });
+
+  /* ---------- Scores ---------- */
+  function renderPlayers() {
+    const ul = $("players"); ul.innerHTML = "";
+    const max = Math.max(0, ...state.players.map(p => p.pts));
+    state.players.forEach((p, i) => {
+      const li = document.createElement("li");
+      if (max > 0 && p.pts === max) li.className = "lead";
+      li.innerHTML = `<span class="pname"></span><button class="mini-btn" aria-label="Retirer un point">−</button><span class="pts">${p.pts}</span><button class="mini-btn" aria-label="Ajouter un point">+</button><button class="mini-btn del" aria-label="Supprimer">×</button>`;
+      li.querySelector(".pname").textContent = p.name;
+      const [minus, plus, del] = li.querySelectorAll("button");
+      minus.onclick = () => { p.pts = Math.max(0, p.pts - 1); renderPlayers(); };
+      plus.onclick = () => { p.pts++; renderPlayers(); };
+      del.onclick = () => { state.players.splice(i, 1); renderPlayers(); };
+      ul.appendChild(li);
+    });
+  }
+  $("add-player").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const v = $("player-name").value.trim(); if (!v) return;
+    state.players.push({ name: v, pts: 0 }); $("player-name").value = ""; renderPlayers();
+  });
+
+  /* ---------- Onglets ---------- */
+  const VIEWS = ["play", "answer", "results", "setup"];
+  function show(view) {
+    VIEWS.forEach(v => { $("view-" + v).hidden = v !== view; $("tab-" + v).setAttribute("aria-selected", v === view); });
+    if (view === "play") renderStage();
+    if (view === "answer") renderAnswerCards();
+    if (view === "results") renderResults();
+  }
+  VIEWS.forEach(v => { $("tab-" + v).onclick = () => show(v); });
+  $("go-play").onclick = () => show("play");
+
+  /* ---------- Correction ---------- */
+  const norm = (t) => (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  function isCorrect(guess, answer) {
+    const g = norm(guess), a = norm(answer);
+    if (!g || !a) return false;
+    if (g === a) return true;
+    const gw = g.split(" "), aw = a.split(" ");
+    return gw[0] === aw[0] || (aw.length > 1 && g === aw.slice(1).join(" "));
+  }
+
+  /* ---------- Données partagées ---------- */
+  const shared = { db: null, user: null, uid: null, admin: false, canWrite: true, players: [], mine: { name: "", guesses: {} } };
+
+  // Réponses officielles (visibles par l'organisatrice et les éditeurs seulement)
+  let keyTimer = null, keySaving = false, keyDirty = false;
+  function saveKeySoon() {
+    if (shared.standalone) {
+      try { localStorage.setItem("qsc-names", JSON.stringify(state.items.map((_, i) => names[i] || ""))); $("key-status").textContent = "Noms enregistrés sur cet ordinateur."; } catch (e) {}
+      return;
+    }
+    if (!shared.db || !shared.admin) return;
+    clearTimeout(keyTimer); keyTimer = setTimeout(saveKey, 700);
+  }
+  async function saveKey() {
+    if (keySaving) { keyDirty = true; return; }
+    keySaving = true; keyDirty = false;
+    $("key-status").textContent = "Enregistrement…";
+    try {
+      await shared.db.doc("key/main").set({ names: state.items.map((_, i) => names[i] || ""), updatedAt: Date.now() });
+      $("key-status").textContent = "Noms enregistrés.";
+    } catch (e) { $("key-status").textContent = "Les noms n'ont pas pu être enregistrés. Réessayez dans un instant."; }
+    keySaving = false;
+    if (keyDirty) saveKey();
+    renderResults(); renderLive();
+  }
+
+  // Réponses du joueur
+  let ansTimer = null, ansSaving = false, ansDirty = false;
+  function saveMineSoon() { clearTimeout(ansTimer); ansTimer = setTimeout(saveMine, 700); $("answer-status").textContent = "…"; }
+  async function saveMine() {
+    if (!shared.db || !shared.uid) return;
+    if (ansSaving) { ansDirty = true; return; }
+    ansSaving = true; ansDirty = false;
+    try {
+      await shared.db.doc("answers/" + shared.uid).set({ name: shared.mine.name, guesses: shared.mine.guesses, updatedAt: Date.now() });
+      $("answer-status").textContent = "Réponses enregistrées.";
+    } catch (e) {
+      if (e && e.code === "invalid_argument") { shared.canWrite = false; renderAnswerCards(); }
+      else $("answer-status").textContent = "Pas d'enregistrement pour l'instant (connexion ?). Vos réponses seront renvoyées à la prochaine saisie.";
+    }
+    ansSaving = false;
+    if (ansDirty) saveMine();
+  }
+
+  function answerNotice(text, warn) {
+    const n = $("answer-notice"); n.textContent = text; n.hidden = !text; n.classList.toggle("warn", !!warn);
+  }
+
+  function renderAnswerCards() {
+    const box = $("answer-cards"), joined = !!shared.mine.name;
+    if (!shared.db) answerNotice("Pour envoyer vos réponses, ouvrez ce lien en étant connecté à votre compte Claude.", true);
+    else if (!shared.canWrite) answerNotice("Votre accès à cette page est en lecture seule. Demandez à l'organisatrice de vous donner le niveau « Contributeur » pour pouvoir répondre.", true);
+    else answerNotice("");
+    const usable = shared.db && shared.canWrite;
+    $("join-form").hidden = joined || !usable;
+    $("who").hidden = !joined;
+    $("who-name").textContent = shared.mine.name;
+    const filled = Object.values(shared.mine.guesses).filter(v => (v || "").trim()).length;
+    $("answer-progress").textContent = `· ${filled} sur ${state.items.length} fantômes`;
+    box.hidden = !joined;
+    if (!joined) { box.innerHTML = ""; return; }
+    if (box.childElementCount === state.items.length && !box.dataset.stale) {
+      box.querySelectorAll("input").forEach(inp => { inp.disabled = !usable; });
+      return;
+    }
+    box.innerHTML = ""; delete box.dataset.stale;
+    state.items.forEach((it, i) => {
+      const card = document.createElement("div"); card.className = "card";
+      card.innerHTML = `<div class="thumbs"><img alt="Fantôme ${i + 1}" loading="lazy"><span class="num">${i + 1}</span></div>`;
+      card.querySelector("img").src = it.ghost;
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.id = "guess-" + i; inp.placeholder = "C'est…"; inp.maxLength = 60;
+      inp.setAttribute("aria-label", "Votre réponse pour le fantôme " + (i + 1));
+      inp.value = shared.mine.guesses[String(i + 1)] || "";
+      inp.classList.toggle("filled-in", !!inp.value.trim());
+      inp.disabled = !usable;
+      inp.addEventListener("input", () => {
+        shared.mine.guesses[String(i + 1)] = inp.value;
+        inp.classList.toggle("filled-in", !!inp.value.trim());
+        const f = Object.values(shared.mine.guesses).filter(v => (v || "").trim()).length;
+        $("answer-progress").textContent = `· ${f} sur ${state.items.length} fantômes`;
+        saveMineSoon();
+      });
+      card.appendChild(inp); box.appendChild(card);
+    });
+  }
+  $("join-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const v = $("player-first").value.trim(); if (!v) { $("player-first").focus(); return; }
+    shared.mine.name = v; $("answer-cards").dataset.stale = "1";
+    renderAnswerCards(); saveMine();
+  });
+  $("who-edit").onclick = () => {
+    $("player-first").value = shared.mine.name; shared.mine.name = "";
+    renderAnswerCards(); $("player-first").focus();
+  };
+
+  // Vue organisatrice
+  function scoreOf(p) {
+    let s = 0; state.items.forEach((_, i) => { if (isCorrect((p.guesses || {})[String(i + 1)], names[i])) s++; }); return s;
+  }
+  function renderResults() {
+    if (!shared.admin) return;
+    const t = $("results-table"), ps = shared.players.slice();
+    const keyed = names.some(n => (n || "").trim());
+    ps.sort((a, b) => keyed ? scoreOf(b) - scoreOf(a) : (a.name || "").localeCompare(b.name || ""));
+    $("results-sub").textContent = ps.length ? `${ps.length} joueur${ps.length > 1 ? "s" : ""}` : "";
+    if (!ps.length) { t.innerHTML = '<tbody><tr><td>Aucune réponse pour l\'instant. Les joueurs répondent depuis l\'onglet « Répondre ».</td></tr></tbody>'; return; }
+    const head = document.createElement("thead"), hr = document.createElement("tr");
+    hr.innerHTML = '<th class="player">Joueur</th>' + (keyed ? '<th>Score</th>' : '') + state.items.map((_, i) => `<th>${i + 1}</th>`).join("");
+    head.appendChild(hr);
+    const body = document.createElement("tbody");
+    ps.forEach(p => {
+      const tr = document.createElement("tr");
+      const th = document.createElement("th"); th.className = "player"; th.textContent = p.name || "Sans prénom"; tr.appendChild(th);
+      if (keyed) { const td = document.createElement("td"); td.className = "total"; td.textContent = `${scoreOf(p)} / ${state.items.length}`; tr.appendChild(td); }
+      state.items.forEach((_, i) => {
+        const td = document.createElement("td"), g = ((p.guesses || {})[String(i + 1)] || "").trim();
+        td.textContent = g || "—";
+        td.className = !g ? "none" : (names[i] || "").trim() ? (isCorrect(g, names[i]) ? "ok" : "ko") : "";
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    t.innerHTML = ""; t.appendChild(head); t.appendChild(body);
+  }
+  function renderLive() {
+    const box = $("live-box"); if (!box) return;
+    box.hidden = !shared.admin || !state.order.length;
+    if (box.hidden) return;
+    const realIdx = state.order[state.idx], key = String(realIdx + 1), ans = names[realIdx];
+    const rows = shared.players.map(p => ({ name: p.name || "Sans prénom", g: ((p.guesses || {})[key] || "").trim() })).filter(r => r.g);
+    const ul = $("live-guesses"); ul.innerHTML = "";
+    if (!state.revealed) {
+      $("live-sub").textContent = rows.length ? `${rows.length} réponse${rows.length > 1 ? "s" : ""} reçue${rows.length > 1 ? "s" : ""}. Elles s'affichent à la révélation.` : "Aucune réponse reçue pour ce fantôme.";
+      return;
+    }
+    const good = rows.filter(r => isCorrect(r.g, ans)).length;
+    $("live-sub").textContent = (ans || "").trim() ? `${good} bonne${good > 1 ? "s" : ""} réponse${good > 1 ? "s" : ""} sur ${rows.length}` : `${rows.length} réponse${rows.length > 1 ? "s" : ""}`;
+    rows.forEach(r => {
+      const li = document.createElement("li"); if (isCorrect(r.g, ans)) li.className = "ok";
+      const a = document.createElement("span"), b = document.createElement("span");
+      a.textContent = r.name; b.textContent = r.g; li.append(a, b); ul.appendChild(li);
+    });
+  }
+
+  async function connect() {
+    const c = window.claude;
+    if (!c || !c.use) {
+      // Version autonome (GitHub Pages…) : pas de base partagée, on joue en projection.
+      shared.standalone = true;
+      $("tab-answer").hidden = true; $("tab-results").hidden = true; $("tab-setup").hidden = false;
+      try { (JSON.parse(localStorage.getItem("qsc-names") || "[]") || []).forEach((n, i) => { names[i] = n; }); } catch (e) {}
+      renderCards(); show("play"); return;
+    }
+    const [db, user] = await Promise.all([c.use("db"), c.use("user")]);
+    shared.db = db; shared.user = user;
+    shared.admin = !!(user && (user.isOwner() || user.canEdit()));
+    if (user && user.can && user.can("data.write") === false) shared.canWrite = false;
+    $("tab-results").hidden = !shared.admin; $("tab-setup").hidden = !shared.admin;
+    if (db && user) {
+      try { shared.uid = await user.id(); } catch (e) { shared.uid = null; }
+      if (shared.uid) {
+        try {
+          const snap = await db.doc("answers/" + shared.uid).get();
+          if (snap.exists) { const d = snap.data() || {}; shared.mine = { name: d.name || "", guesses: d.guesses || {} }; }
+        } catch (e) {}
+      } else shared.db = null;
+    }
+    if (db && shared.admin) {
+      try {
+        const k = await db.doc("key/main").get();
+        if (k.exists) { (k.data().names || []).forEach((n, i) => { names[i] = n; }); renderCards(); }
+      } catch (e) {}
+      db.collection("answers").onSnapshot((qs) => {
+        shared.players = qs.docs.map(d => d.data() || {}).filter(d => (d.name || "").trim() || Object.keys(d.guesses || {}).length);
+        renderResults(); renderLive();
+      }, () => {});
+    }
+    renderAnswerCards();
+    show(shared.admin ? "play" : "answer");
+  }
+
+  function loadPreset() {
+    state.ghostPages = Array.from({ length: 21 }, (_, i) => `ghosts/${String(i + 1).padStart(2, "0")}.jpg`);
+    state.demo = false;
+    $("ghosts-name").textContent = "21 fantômes déjà chargés";
+    rebuild();
+  }
+  renderPlayers();
+  loadPreset();
+  connect();
+})();
+</script>
+
+</body>
+</html>
