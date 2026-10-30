@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Figtree:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="../assets/site.js"></script>
 <style>
 /* Layout : une scène de séance — barre haute, onglets Préparer / Jouer, grande scène centrale + tableau des scores à droite. Thème sombre assumé (soirée fantômes). */
 :root {
@@ -140,6 +141,8 @@ select, input[type="text"] { width: 100%; background: var(--bg); color: var(--bo
 .notice { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 12px 14px; color: var(--mist); margin: 0; }
 .notice.warn { border-color: var(--candle); color: var(--bone); }
 .card input.filled-in { border-color: var(--good); }
+.players li.auto { grid-template-columns: minmax(0,1fr) auto; }
+.send-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
 table.grid { border-collapse: collapse; font-size: 13px; min-width: 100%; }
 table.grid th, table.grid td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
@@ -282,6 +285,7 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
       <p class="hint" id="answer-hint">Écrivez sous chaque fantôme le nom du collègue que vous reconnaissez. Vos réponses s'enregistrent toutes seules et vous pouvez les modifier jusqu'à la fin du jeu. Les autres joueurs ne les voient pas.</p>
       <p class="status" id="answer-status" aria-live="polite"></p>
       <div class="cards" id="answer-cards"></div>
+      <div class="send-row" id="send-row" hidden><button class="btn primary" id="send-answers" type="button">Envoyer mes réponses</button><span class="hint">Une fois envoyées, tu ne pourras plus les modifier.</span></div>
     </div>
   </section>
 
@@ -395,7 +399,7 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
     if (state.separateReveals.length) reveals = state.separateReveals;
     state.items = ghosts.map((g, i) => ({ ghost: g, reveal: reveals[i] || null }));
     state.order = state.items.map((_, i) => i);
-    state.idx = 0; state.revealed = false;
+    state.idx = 0; state.revealed = false; state.seen = new Set();
     $("demo-badge").hidden = !state.demo;
     renderCards(); renderStage();
   }
@@ -441,7 +445,12 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
     if (j === state.idx) return;
     state.idx = j; state.revealed = false; renderStage();
   }
-  function toggleReveal() { if (!state.order.length) return; state.revealed = !state.revealed; renderStage(); }
+  function toggleReveal() {
+    if (!state.order.length) return;
+    state.revealed = !state.revealed;
+    if (state.revealed) { state.seen.add(state.order[state.idx]); renderPlayers(); }
+    renderStage();
+  }
   $("prev").onclick = () => go(-1);
   $("next").onclick = () => go(1);
   $("reveal").onclick = toggleReveal;
@@ -468,6 +477,22 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
   /* ---------- Scores ---------- */
   function renderPlayers() {
     const ul = $("players"); ul.innerHTML = "";
+    if (shared.fb && shared.admin) {
+      // Un point par fantôme révélé dont le prénom est juste.
+      $("add-player").hidden = true;
+      const seen = [...(state.seen || [])];
+      const rows = shared.players.map(p => ({ name: p.name || "Sans prénom", pts: seen.filter(i => isCorrect((p.guesses || {})[String(i + 1)], names[i])).length }))
+        .sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name));
+      const top = Math.max(0, ...rows.map(r => r.pts));
+      if (!rows.length) ul.innerHTML = '<li class="auto"><span class="pname">En attente des réponses des joueurs…</span></li>';
+      rows.forEach(r => {
+        const li = document.createElement("li"); li.className = "auto" + (top > 0 && r.pts === top ? " lead" : "");
+        li.innerHTML = '<span class="pname"></span><span class="pts"></span>';
+        li.querySelector(".pname").textContent = r.name; li.querySelector(".pts").textContent = r.pts;
+        ul.appendChild(li);
+      });
+      return;
+    }
     const max = Math.max(0, ...state.players.map(p => p.pts));
     state.players.forEach((p, i) => {
       const li = document.createElement("li");
@@ -509,6 +534,7 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
   }
 
   /* ---------- Données partagées ---------- */
+  const JEU = "qui-se-cache"; // nom du dossier, sert d'identifiant dans Firebase
   const shared = { db: null, user: null, uid: null, admin: false, canWrite: true, players: [], mine: { name: "", guesses: {} } };
 
   // Réponses officielles (visibles par l'organisatrice et les éditeurs seulement)
@@ -538,6 +564,11 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
   let ansTimer = null, ansSaving = false, ansDirty = false;
   function saveMineSoon() { clearTimeout(ansTimer); ansTimer = setTimeout(saveMine, 700); $("answer-status").textContent = "…"; }
   async function saveMine() {
+    if (shared.fb) {
+      try { localStorage.setItem("qsc-brouillon", JSON.stringify(shared.mine)); } catch (e) {}
+      $("answer-status").textContent = shared.sent ? "Réponses envoyées. Regarde l'écran pour les résultats !" : "Brouillon gardé sur ce téléphone. Pense à envoyer à la fin.";
+      return;
+    }
     if (!shared.db || !shared.uid) return;
     if (ansSaving) { ansDirty = true; return; }
     ansSaving = true; ansDirty = false;
@@ -561,7 +592,12 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
     if (!shared.db) answerNotice("Pour envoyer vos réponses, ouvrez ce lien en étant connecté à votre compte Claude.", true);
     else if (!shared.canWrite) answerNotice("Votre accès à cette page est en lecture seule. Demandez à l'organisatrice de vous donner le niveau « Contributeur » pour pouvoir répondre.", true);
     else answerNotice("");
-    const usable = shared.db && shared.canWrite;
+    const usable = shared.db && shared.canWrite && !shared.sent;
+    if (shared.fb) {
+      $("send-row").hidden = !joined || shared.sent;
+      $("who-edit").hidden = shared.sent;
+      $("answer-hint").textContent = shared.sent ? "Tes réponses sont envoyées. Les points s'affichent sur l'écran à chaque révélation." : "Écris sous chaque fantôme le prénom du collègue que tu reconnais. Un point par prénom juste (majuscules et accents ne comptent pas). Quand tu as fini, appuie sur « Envoyer mes réponses » en bas.";
+    }
     $("join-form").hidden = joined || !usable;
     $("who").hidden = !joined;
     $("who-name").textContent = shared.mine.name;
@@ -600,6 +636,26 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
     shared.mine.name = v; $("answer-cards").dataset.stale = "1";
     renderAnswerCards(); saveMine();
   });
+  $("send-answers").onclick = async () => {
+    const name = shared.mine.name.trim(), btn = $("send-answers");
+    const filled = Object.values(shared.mine.guesses).filter(v => (v || "").trim()).length;
+    if (filled < state.items.length && !confirm(`Tu as répondu à ${filled} fantômes sur ${state.items.length}. Envoyer quand même ?`)) return;
+    btn.disabled = true; $("answer-status").textContent = "Envoi…";
+    const { fs, db } = shared.fb, ref = fs.doc(db, window.SITE.collection, JEU + "__" + name.toLowerCase());
+    try {
+      if ((await fs.getDoc(ref)).exists()) {
+        $("answer-status").textContent = `Quelqu'un a déjà répondu avec le prénom « ${name} ». Change de prénom (ajoute l'initiale de ton nom) puis renvoie.`;
+        btn.disabled = false; return;
+      }
+      await fs.setDoc(ref, { tierlist: JEU, participant: name, guesses: shared.mine.guesses, date: Date.now() });
+      shared.sent = true;
+      try { localStorage.setItem("qsc-envoye", name); } catch (e) {}
+      $("answer-cards").dataset.stale = "1"; renderAnswerCards(); saveMine();
+    } catch (e) {
+      $("answer-status").textContent = "L'envoi n'a pas marché (connexion ?). Réessaie dans un instant.";
+    }
+    btn.disabled = false;
+  };
   $("who-edit").onclick = () => {
     $("player-first").value = shared.mine.name; shared.mine.name = "";
     renderAnswerCards(); $("player-first").focus();
@@ -656,6 +712,39 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
 
   async function connect() {
     const c = window.claude;
+    if ((!c || !c.use) && window.chargerFirebase) {
+      // Version du site : les joueurs répondent sur leur téléphone (Firebase du site),
+      // l'animateur ouvre la page avec ?animateur sur l'ordinateur qui projette.
+      shared.standalone = true;
+      let anim = new URLSearchParams(location.search).has("animateur");
+      try { if (anim) localStorage.setItem("qsc-animateur", "1"); else anim = localStorage.getItem("qsc-animateur") === "1"; } catch (e) {}
+      shared.admin = anim;
+      try { shared.fb = await window.chargerFirebase(); } catch (e) { shared.fb = null; }
+      if (shared.fb) {
+        shared.db = true;
+        $("tab-answer").hidden = anim; $("tab-play").hidden = !anim; $("tab-results").hidden = !anim; $("tab-setup").hidden = !anim;
+        if (!anim) document.querySelector(".tabs").hidden = true;
+        if (anim) {
+          try { (JSON.parse(localStorage.getItem("qsc-names") || "[]") || []).forEach((n, i) => { names[i] = n; }); } catch (e) {}
+          renderCards();
+          const { fs, db } = shared.fb;
+          fs.onSnapshot(fs.query(fs.collection(db, window.SITE.collection), fs.where("tierlist", "==", JEU)), (qs) => {
+            shared.players = qs.docs.map(d => { const x = d.data() || {}; return { name: x.participant, guesses: x.guesses || {} }; });
+            renderResults(); renderLive(); renderPlayers();
+          }, () => {});
+          renderPlayers(); show("play");
+        } else {
+          try {
+            const d = JSON.parse(localStorage.getItem("qsc-brouillon") || "null");
+            if (d && typeof d.name === "string") shared.mine = { name: d.name, guesses: d.guesses || {} };
+            const sentAs = localStorage.getItem("qsc-envoye");
+            if (sentAs && sentAs === shared.mine.name) shared.sent = true;
+          } catch (e) {}
+          show("answer");
+        }
+        return;
+      }
+    }
     if (!c || !c.use) {
       // Version autonome (GitHub Pages…) : pas de base partagée, on joue en projection.
       shared.standalone = true;

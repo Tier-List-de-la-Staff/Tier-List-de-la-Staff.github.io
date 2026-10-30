@@ -25,10 +25,17 @@ chanson-francaise/      une tier list = un dossier
 Un jeu est une page autonome dans son propre dossier (pas de `config.js` ni de verdict).
 Dans `listes.js`, son bloc porte `type: "jeu"` : la carte du menu affiche alors un seul bouton « Jouer ».
 
-- `qui-se-cache/` : deviner quel collègue se cache sous chaque fantôme. Se joue en projection.
-  Onglet « Préparer » : saisir le vrai nom sous chaque fantôme (enregistré dans le navigateur de
-  l'ordinateur qui projette, pas sur GitHub). Clavier : ← → naviguer, Espace révéler, F plein écran.
-  Pour changer de fantômes : remplacer `qui-se-cache/ghosts/01.jpg` à `21.jpg`.
+- `qui-se-cache/` : deviner quel collègue se cache sous chaque fantôme.
+  - Les joueurs ouvrent le jeu sur leur téléphone (bouton « Jouer » du menu), tapent leur prénom,
+    écrivent un prénom sous chaque fantôme puis envoient (une seule fois, pas de modification ensuite).
+    Leurs réponses vont dans Firebase (`submissions`, documents `qui-se-cache__prenom`).
+  - L'animateur ouvre `qui-se-cache/?animateur` sur l'ordinateur qui projette (retenu ensuite par ce navigateur).
+    Onglet « Préparer » : saisir le vrai nom sous chaque fantôme (gardé dans ce navigateur, pas sur GitHub).
+    À chaque révélation, chaque joueur qui a le bon prénom gagne un point (majuscules et accents ignorés,
+    le prénom seul suffit). Onglet « Réponses » : le tableau complet.
+  - Clavier : ← → naviguer, Espace révéler, F plein écran.
+  - Nouvelle partie : supprimer les documents `qui-se-cache__…` dans la console Firebase.
+  - Pour changer de fantômes : remplacer `qui-se-cache/ghosts/01.jpg` à `21.jpg`.
 
 ## Ajouter une tier list
 
