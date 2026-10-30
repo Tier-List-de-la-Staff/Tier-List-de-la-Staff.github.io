@@ -185,8 +185,23 @@
   $("review").onclick = () => { cur = 0; render(); show("play"); };
 
   /* ---------- Démarrage ---------- */
-  if (done() >= N) end();
-  else { cur = Math.min(N - 1, done()); render(); show("play"); }
+  function start() {
+    if (done() >= N) end();
+    else { cur = Math.min(N - 1, done()); render(); show("play"); }
+  }
+  start();
+  // Score déjà envoyé mais supprimé de Firebase depuis (nouvelle partie, test effacé) :
+  // on oublie la partie gardée sur ce téléphone pour pouvoir rejouer.
+  if (me.sent && me.name) {
+    (async () => {
+      try {
+        const { fs, db } = await window.chargerFirebase();
+        if ((await fs.getDoc(refFor(fs, db, me.name))).exists()) return;
+      } catch (e) { return; }
+      me = { name: "", guesses: {}, locked: {}, sent: false }; save();
+      $("send-status").textContent = ""; start();
+    })();
+  }
 })();
 </script>
 </body>

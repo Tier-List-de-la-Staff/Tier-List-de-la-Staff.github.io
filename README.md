@@ -38,6 +38,7 @@ et « Voir le classement » (`classement.html`).
   - `classement.html` : tous les joueurs par score, et chaque fantôme du plus reconnu au plus mystérieux.
   - `commun.js` (correction des réponses) et `jeu.css` servent aux deux pages.
   - Supprimer un joueur (test, triche) : supprimer son document `qui-se-cache__…` dans la console Firebase.
+    À sa prochaine visite, son téléphone oublie l'ancienne partie et il peut rejouer.
 
 ## Ajouter une tier list
 
