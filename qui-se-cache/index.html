@@ -142,6 +142,13 @@ select, input[type="text"] { width: 100%; background: var(--bg); color: var(--bo
 .notice.warn { border-color: var(--candle); color: var(--bone); }
 .card input.filled-in { border-color: var(--good); }
 .players li.auto { grid-template-columns: minmax(0,1fr) auto; }
+.one { display: flex; flex-direction: column; gap: 12px; max-width: 520px; width: 100%; margin: 0 auto; }
+.one-top { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--font-display); font-size: 24px; }
+.one-top small { font-family: var(--font-body); font-size: 13px; color: var(--mist); }
+.one input { font-size: 18px; padding: 12px; }
+.one-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.one-nav .btn { justify-content: center; padding: 12px; }
+#answer-cards.solo { display: block; }
 .send-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
 table.grid { border-collapse: collapse; font-size: 13px; min-width: 100%; }
@@ -594,9 +601,9 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
     else answerNotice("");
     const usable = shared.db && shared.canWrite && !shared.sent;
     if (shared.fb) {
-      $("send-row").hidden = !joined || shared.sent;
+      $("send-row").hidden = !joined || shared.sent || (shared.cur || 0) < state.items.length - 1;
       $("who-edit").hidden = shared.sent;
-      $("answer-hint").textContent = shared.sent ? "Tes réponses sont envoyées. Les points s'affichent sur l'écran à chaque révélation." : "Écris sous chaque fantôme le prénom du collègue que tu reconnais. Un point par prénom juste (majuscules et accents ne comptent pas). Quand tu as fini, appuie sur « Envoyer mes réponses » en bas.";
+      $("answer-hint").textContent = shared.sent ? "Tes réponses sont envoyées. Les points s'affichent sur l'écran à chaque révélation." : "Écris sous chaque fantôme le prénom du collègue que tu reconnais. Un point par prénom juste (majuscules et accents ne comptent pas). Un fantôme à la fois : passe au suivant avec « Suivant ». Après le dernier, appuie sur « Envoyer mes réponses ».";
     }
     $("join-form").hidden = joined || !usable;
     $("who").hidden = !joined;
@@ -605,6 +612,7 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
     $("answer-progress").textContent = `· ${filled} sur ${state.items.length} fantômes`;
     box.hidden = !joined;
     if (!joined) { box.innerHTML = ""; return; }
+    if (shared.fb) { renderOne(box, usable); return; }
     if (box.childElementCount === state.items.length && !box.dataset.stale) {
       box.querySelectorAll("input").forEach(inp => { inp.disabled = !usable; });
       return;
@@ -629,6 +637,35 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
       });
       card.appendChild(inp); box.appendChild(card);
     });
+  }
+  // Version téléphone : un fantôme par écran
+  function renderOne(box, usable) {
+    const n = state.items.length, i = Math.max(0, Math.min(n - 1, shared.cur || 0));
+    shared.cur = i; box.className = "cards solo"; box.innerHTML = "";
+    const one = document.createElement("div"); one.className = "one";
+    one.innerHTML = `<div class="one-top"><span>Fantôme ${i + 1}</span><small>sur ${n}</small></div><div class="thumbs"><img alt="Fantôme ${i + 1}"></div>`;
+    one.querySelector("img").src = state.items[i].ghost;
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.id = "guess-" + i; inp.placeholder = "C'est…"; inp.maxLength = 60; inp.enterKeyHint = "next";
+    inp.setAttribute("aria-label", "Votre réponse pour le fantôme " + (i + 1));
+    inp.value = shared.mine.guesses[String(i + 1)] || "";
+    inp.classList.toggle("filled-in", !!inp.value.trim());
+    inp.disabled = !usable;
+    inp.addEventListener("input", () => {
+      shared.mine.guesses[String(i + 1)] = inp.value;
+      inp.classList.toggle("filled-in", !!inp.value.trim());
+      const f = Object.values(shared.mine.guesses).filter(v => (v || "").trim()).length;
+      $("answer-progress").textContent = `· ${f} sur ${n} fantômes`;
+      saveMineSoon();
+    });
+    const nav = document.createElement("div"); nav.className = "one-nav";
+    nav.innerHTML = '<button class="btn" type="button">← Précédent</button><button class="btn primary" type="button">Suivant →</button>';
+    const [prev, next] = nav.querySelectorAll("button");
+    prev.disabled = i === 0; next.disabled = i === n - 1;
+    const goOne = (d) => { shared.cur = i + d; renderAnswerCards(); const g = $("guess-" + shared.cur); if (g && !g.disabled) g.focus(); };
+    prev.onclick = () => goOne(-1); next.onclick = () => goOne(1);
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); if (i < n - 1) goOne(1); else $("send-answers").focus(); } });
+    one.append(inp, nav); box.appendChild(one);
   }
   $("join-form").addEventListener("submit", (e) => {
     e.preventDefault();

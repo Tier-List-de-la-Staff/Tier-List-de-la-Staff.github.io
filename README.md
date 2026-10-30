@@ -27,7 +27,7 @@ Dans `listes.js`, son bloc porte `type: "jeu"` : la carte du menu affiche alors 
 
 - `qui-se-cache/` : deviner quel collègue se cache sous chaque fantôme.
   - Les joueurs ouvrent le jeu sur leur téléphone (bouton « Jouer » du menu), tapent leur prénom,
-    écrivent un prénom sous chaque fantôme puis envoient (une seule fois, pas de modification ensuite).
+    écrivent un prénom par fantôme (un fantôme par écran, Précédent / Suivant) puis envoient après le dernier (une seule fois, pas de modification ensuite).
     Leurs réponses vont dans Firebase (`submissions`, documents `qui-se-cache__prenom`).
   - L'animateur ouvre `qui-se-cache/?animateur` sur l'ordinateur qui projette (retenu ensuite par ce navigateur).
     Onglet « Préparer » : saisir le vrai nom sous chaque fantôme (gardé dans ce navigateur, pas sur GitHub).
