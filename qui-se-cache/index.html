@@ -149,6 +149,19 @@ select, input[type="text"] { width: 100%; background: var(--bg); color: var(--bo
 .one-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .one-nav .btn { justify-content: center; padding: 12px; }
 #answer-cards.solo { display: block; }
+.lift { position: relative; aspect-ratio: 1 / 1; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+.lift img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.lift .ghost { transition: transform 1.1s cubic-bezier(.5,-0.2,.3,1), opacity 1.1s ease; }
+.lift.up .ghost { transform: translateY(-115%) rotate(-6deg); opacity: 0; }
+.lift .verdict { position: absolute; left: 50%; bottom: 14px; transform: translate(-50%, 20px); opacity: 0; transition: opacity .4s ease .8s, transform .4s ease .8s; padding: 8px 18px; border-radius: 999px; font: 700 22px var(--font-body); white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
+.lift.up .verdict { opacity: 1; transform: translate(-50%, 0); }
+.lift.done .ghost, .lift.done .verdict { transition: none; }
+.verdict.vrai { background: var(--good); color: #0d2416; }
+.verdict.faux { background: #e46a6a; color: #2a0909; }
+.one-score { color: var(--mist); font-size: 14px; }
+.paste { display: flex; flex-direction: column; gap: 8px; }
+.paste summary { cursor: pointer; color: var(--candle); font-weight: 600; }
+.paste textarea { width: 100%; background: var(--bg); color: var(--bone); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font: 15px var(--font-body); margin: 8px 0; }
 .send-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
 table.grid { border-collapse: collapse; font-size: 13px; min-width: 100%; }
@@ -230,6 +243,11 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
       </div>
       <p class="hint">Tapez le nom de la personne sous chaque fantôme. Il s'affiche au moment de la révélation et sert à corriger les réponses des joueurs. Seuls vous et les éditeurs de la page le voient.</p>
       <p class="status" id="key-status" aria-live="polite"></p>
+      <details class="paste">
+        <summary>Coller toute la liste d'un coup</summary>
+        <textarea id="paste-names" rows="6" placeholder="Un nom par ligne, ou séparés par des virgules, dans l'ordre des fantômes (« 1 Camille » marche aussi)."></textarea>
+        <button class="btn" type="button" id="paste-fill">Remplir les noms</button>
+      </details>
       <div class="cards" id="cards"></div>
       <div><button class="btn primary" id="go-play">Lancer la partie →</button></div>
     </div>
@@ -427,6 +445,13 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
     if (!state.items.length) box.innerHTML = '<p class="hint">Aucune page trouvée dans ce PDF.</p>';
   }
 
+  $("paste-fill").onclick = () => {
+    const list = $("paste-names").value.split(/[\n,;]+/).map(t => t.replace(/^\s*\d+\s*[.):\-–]?\s*/, "").trim()).filter(Boolean);
+    list.slice(0, state.items.length).forEach((n, i) => { names[i] = n; });
+    renderCards(); saveKeySoon();
+    $("key-status").textContent = `${Math.min(list.length, state.items.length)} noms remplis` + (list.length !== state.items.length ? ` (${list.length} reçus pour ${state.items.length} fantômes, vérifiez l'ordre)` : ".");
+  };
+
   /* ---------- Scène ---------- */
   function renderStage() {
     const st = $("stage"), n = state.order.length;
@@ -542,7 +567,7 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
 
   /* ---------- Données partagées ---------- */
   const JEU = "qui-se-cache"; // nom du dossier, sert d'identifiant dans Firebase
-  const shared = { db: null, user: null, uid: null, admin: false, canWrite: true, players: [], mine: { name: "", guesses: {} } };
+  const shared = { db: null, user: null, uid: null, admin: false, canWrite: true, players: [], mine: { name: "", guesses: {}, locked: {} } };
 
   // Réponses officielles (visibles par l'organisatrice et les éditeurs seulement)
   let keyTimer = null, keySaving = false, keyDirty = false;
@@ -573,7 +598,7 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
   async function saveMine() {
     if (shared.fb) {
       try { localStorage.setItem("qsc-brouillon", JSON.stringify(shared.mine)); } catch (e) {}
-      $("answer-status").textContent = shared.sent ? "Réponses envoyées. Regarde l'écran pour les résultats !" : "Brouillon gardé sur ce téléphone. Pense à envoyer à la fin.";
+      $("answer-status").textContent = shared.sent ? "Réponses envoyées. Regarde l'écran pour le classement !" : "";
       return;
     }
     if (!shared.db || !shared.uid) return;
@@ -601,14 +626,14 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
     else answerNotice("");
     const usable = shared.db && shared.canWrite && !shared.sent;
     if (shared.fb) {
-      $("send-row").hidden = !joined || shared.sent || (shared.cur || 0) < state.items.length - 1;
-      $("who-edit").hidden = shared.sent;
-      $("answer-hint").textContent = shared.sent ? "Tes réponses sont envoyées. Les points s'affichent sur l'écran à chaque révélation." : "Écris sous chaque fantôme le prénom du collègue que tu reconnais. Un point par prénom juste (majuscules et accents ne comptent pas). Un fantôme à la fois : passe au suivant avec « Suivant ». Après le dernier, appuie sur « Envoyer mes réponses ».";
+      $("send-row").hidden = true;
+      $("who-edit").hidden = shared.sent || Object.keys(shared.mine.locked || {}).length > 0;
+      $("answer-hint").textContent = shared.sent ? "Tes réponses sont envoyées. Les points s'affichent sur l'écran à chaque révélation." : "Écris le prénom du collègue caché sous le fantôme puis appuie sur « Valider » : le fantôme se soulève et tu sais tout de suite si c'est vrai ou faux. Majuscules et accents ne comptent pas. Une réponse validée ne se change plus.";
     }
     $("join-form").hidden = joined || !usable;
     $("who").hidden = !joined;
     $("who-name").textContent = shared.mine.name;
-    const filled = Object.values(shared.mine.guesses).filter(v => (v || "").trim()).length;
+    const filled = shared.fb ? Object.keys(shared.mine.locked || {}).length : Object.values(shared.mine.guesses).filter(v => (v || "").trim()).length;
     $("answer-progress").textContent = `· ${filled} sur ${state.items.length} fantômes`;
     box.hidden = !joined;
     if (!joined) { box.innerHTML = ""; return; }
@@ -640,43 +665,75 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
   }
   // Version téléphone : un fantôme par écran
   function renderOne(box, usable) {
-    const n = state.items.length, i = Math.max(0, Math.min(n - 1, shared.cur || 0));
+    const n = state.items.length, i = Math.max(0, Math.min(n - 1, shared.cur || 0)), key = String(i + 1);
     shared.cur = i; box.className = "cards solo"; box.innerHTML = "";
+    const locked = shared.mine.locked || (shared.mine.locked = {});
+    const done = !!locked[key] || shared.sent;
+    const good = Object.keys(locked).filter(k => isCorrect(shared.mine.guesses[k], names[+k - 1])).length;
     const one = document.createElement("div"); one.className = "one";
-    one.innerHTML = `<div class="one-top"><span>Fantôme ${i + 1}</span><small>sur ${n}</small></div><div class="thumbs"><img alt="Fantôme ${i + 1}"></div>`;
-    one.querySelector("img").src = state.items[i].ghost;
+    one.innerHTML = `<div class="one-top"><span>Fantôme ${i + 1}</span><small>sur ${n}</small></div>
+      <div class="lift"><img class="photo" alt=""><img class="ghost" alt="Fantôme ${i + 1}"><span class="verdict"></span></div>
+      <div class="one-score">Score : ${good} / ${Object.keys(locked).length}</div>`;
+    const lift = one.querySelector(".lift"), verdict = one.querySelector(".verdict");
+    one.querySelector(".ghost").src = state.items[i].ghost;
+    if (state.items[i].reveal) one.querySelector(".photo").src = state.items[i].reveal;
+    const showVerdict = () => {
+      const ok = isCorrect(shared.mine.guesses[key], names[i]);
+      verdict.className = "verdict " + (ok ? "vrai" : "faux");
+      verdict.textContent = ok ? "Vrai !" : `Faux : c'était ${names[i] || "?"}`;
+    };
     const inp = document.createElement("input");
-    inp.type = "text"; inp.id = "guess-" + i; inp.placeholder = "C'est…"; inp.maxLength = 60; inp.enterKeyHint = "next";
+    inp.type = "text"; inp.id = "guess-" + i; inp.placeholder = "C'est…"; inp.maxLength = 60; inp.enterKeyHint = "done";
     inp.setAttribute("aria-label", "Votre réponse pour le fantôme " + (i + 1));
-    inp.value = shared.mine.guesses[String(i + 1)] || "";
-    inp.classList.toggle("filled-in", !!inp.value.trim());
-    inp.disabled = !usable;
-    inp.addEventListener("input", () => {
-      shared.mine.guesses[String(i + 1)] = inp.value;
-      inp.classList.toggle("filled-in", !!inp.value.trim());
-      const f = Object.values(shared.mine.guesses).filter(v => (v || "").trim()).length;
-      $("answer-progress").textContent = `· ${f} sur ${n} fantômes`;
-      saveMineSoon();
-    });
+    inp.value = shared.mine.guesses[key] || "";
+    inp.disabled = !usable || done;
+    inp.addEventListener("input", () => { shared.mine.guesses[key] = inp.value; saveMineSoon(); });
     const nav = document.createElement("div"); nav.className = "one-nav";
-    nav.innerHTML = '<button class="btn" type="button">← Précédent</button><button class="btn primary" type="button">Suivant →</button>';
-    const [prev, next] = nav.querySelectorAll("button");
-    prev.disabled = i === 0; next.disabled = i === n - 1;
+    nav.innerHTML = '<button class="btn" type="button">← Précédent</button><button class="btn primary" type="button"></button>';
+    const [prev, main] = nav.querySelectorAll("button");
+    prev.disabled = i === 0;
     const goOne = (d) => { shared.cur = i + d; renderAnswerCards(); const g = $("guess-" + shared.cur); if (g && !g.disabled) g.focus(); };
-    prev.onclick = () => goOne(-1); next.onclick = () => goOne(1);
-    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); if (i < n - 1) goOne(1); else $("send-answers").focus(); } });
-    one.append(inp, nav); box.appendChild(one);
+    const setMain = () => {
+      const isDone = !!locked[key] || shared.sent;
+      main.textContent = !isDone ? "Valider" : i < n - 1 ? "Suivant →" : "Terminé";
+      main.disabled = isDone && i === n - 1;
+    };
+    const validate = () => {
+      shared.mine.guesses[key] = inp.value.trim(); locked[key] = true; inp.disabled = true;
+      showVerdict(); lift.classList.add("up"); setMain(); saveMine();
+      const g2 = Object.keys(locked).filter(k => isCorrect(shared.mine.guesses[k], names[+k - 1])).length;
+      one.querySelector(".one-score").textContent = `Score : ${g2} / ${Object.keys(locked).length}`;
+      $("answer-progress").textContent = `· ${Object.keys(locked).length} sur ${n} fantômes`; $("who-edit").hidden = true;
+      if (Object.keys(locked).length >= n && !shared.sent) sendAnswers(true);
+    };
+    main.onclick = () => { if (!locked[key] && !shared.sent) validate(); else if (i < n - 1) goOne(1); };
+    prev.onclick = () => goOne(-1);
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); main.click(); } });
+    if (done) { showVerdict(); lift.classList.add("up", "done"); }
+    setMain();
+    one.insertBefore(inp, one.querySelector(".one-score")); one.insertBefore(nav, one.querySelector(".one-score"));
+    box.appendChild(one);
   }
-  $("join-form").addEventListener("submit", (e) => {
+  $("join-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const v = $("player-first").value.trim(); if (!v) { $("player-first").focus(); return; }
+    if (shared.fb) {
+      try {
+        const { fs, db } = shared.fb;
+        if ((await fs.getDoc(fs.doc(db, window.SITE.collection, JEU + "__" + v.toLowerCase()))).exists()) {
+          $("answer-status").textContent = `Le prénom « ${v} » a déjà joué. Ajoute l'initiale de ton nom (ex. ${v} M.).`; return;
+        }
+      } catch (err) {}
+      $("answer-status").textContent = "";
+    }
     shared.mine.name = v; $("answer-cards").dataset.stale = "1";
     renderAnswerCards(); saveMine();
   });
-  $("send-answers").onclick = async () => {
+  $("send-answers").onclick = () => sendAnswers(false);
+  async function sendAnswers(auto) {
     const name = shared.mine.name.trim(), btn = $("send-answers");
-    const filled = Object.values(shared.mine.guesses).filter(v => (v || "").trim()).length;
-    if (filled < state.items.length && !confirm(`Tu as répondu à ${filled} fantômes sur ${state.items.length}. Envoyer quand même ?`)) return;
+    const filled = Object.keys(shared.mine.locked || {}).length;
+    if (!auto && filled < state.items.length && !confirm(`Tu as répondu à ${filled} fantômes sur ${state.items.length}. Envoyer quand même ?`)) return;
     btn.disabled = true; $("answer-status").textContent = "Envoi…";
     const { fs, db } = shared.fb, ref = fs.doc(db, window.SITE.collection, JEU + "__" + name.toLowerCase());
     try {
@@ -689,10 +746,11 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
       try { localStorage.setItem("qsc-envoye", name); } catch (e) {}
       $("answer-cards").dataset.stale = "1"; renderAnswerCards(); saveMine();
     } catch (e) {
-      $("answer-status").textContent = "L'envoi n'a pas marché (connexion ?). Réessaie dans un instant.";
+      $("answer-status").textContent = "L'envoi n'a pas marché (connexion ?). Appuie sur « Envoyer mes réponses » pour réessayer.";
+      $("send-row").hidden = false;
     }
     btn.disabled = false;
-  };
+  }
   $("who-edit").onclick = () => {
     $("player-first").value = shared.mine.name; shared.mine.name = "";
     renderAnswerCards(); $("player-first").focus();
@@ -759,10 +817,16 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
       try { shared.fb = await window.chargerFirebase(); } catch (e) { shared.fb = null; }
       if (shared.fb) {
         shared.db = true;
+        // Vrais noms et photos de révélation
+        await new Promise(ok => { const sc = document.createElement("script"); sc.src = "noms.js?t=" + Date.now(); sc.onload = sc.onerror = ok; document.head.appendChild(sc); });
+        (window.QSC_NOMS || []).forEach((n, i) => { names[i] = n; });
+        state.separateReveals = state.ghostPages.map((_, i) => `photos/${String(i + 1).padStart(2, "0")}.jpg`);
+        $("reveals-name").textContent = "21 photos déjà chargées";
+        rebuild();
         $("tab-answer").hidden = anim; $("tab-play").hidden = !anim; $("tab-results").hidden = !anim; $("tab-setup").hidden = !anim;
         if (!anim) document.querySelector(".tabs").hidden = true;
         if (anim) {
-          try { (JSON.parse(localStorage.getItem("qsc-names") || "[]") || []).forEach((n, i) => { names[i] = n; }); } catch (e) {}
+          try { (JSON.parse(localStorage.getItem("qsc-names") || "[]") || []).forEach((n, i) => { if ((n || "").trim()) names[i] = n; }); } catch (e) {}
           renderCards();
           const { fs, db } = shared.fb;
           fs.onSnapshot(fs.query(fs.collection(db, window.SITE.collection), fs.where("tierlist", "==", JEU)), (qs) => {
@@ -773,7 +837,7 @@ table.grid .total { font-weight: 700; color: var(--candle); font-variant-numeric
         } else {
           try {
             const d = JSON.parse(localStorage.getItem("qsc-brouillon") || "null");
-            if (d && typeof d.name === "string") shared.mine = { name: d.name, guesses: d.guesses || {} };
+            if (d && typeof d.name === "string") shared.mine = { name: d.name, guesses: d.guesses || {}, locked: d.locked || {} };
             const sentAs = localStorage.getItem("qsc-envoye");
             if (sentAs && sentAs === shared.mine.name) shared.sent = true;
           } catch (e) {}
