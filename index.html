@@ -267,7 +267,8 @@ footer{
       ${mini}
       <div class="actions">
         ${l.type === "jeu"
-          ? `<a class="go main" href="${esc(l.dossier)}/"><span>Jouer</span>${arrow}</a>`
+          ? `<a class="go main" href="${esc(l.dossier)}/"><span>Jouer</span>${arrow}</a>
+        <a class="go alt" href="${esc(l.dossier)}/classement.html">Voir le classement</a>`
           : `<a class="go main" href="${esc(l.dossier)}/"><span>Faire ma tier list</span>${arrow}</a>
         <a class="go alt" href="${esc(l.dossier)}/verdict.html">Voir le verdict</a>`}
       </div>

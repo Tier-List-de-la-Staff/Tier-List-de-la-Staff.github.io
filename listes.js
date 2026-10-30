@@ -1,7 +1,7 @@
 // Les tier lists affichées sur la page d'accueil, dans cet ordre.
 // dossier     : le nom du dossier de la tier list (le plus simple : le même que son "id" dans config.js)
 // statut      : petit badge sur la carte, par exemple "Ouvert" ou "Nouveau"
-// type        : "jeu" pour un jeu (un seul bouton « Jouer », pas de verdict) ; à omettre pour une tier list
+// type        : "jeu" pour un jeu (boutons « Jouer » et « Voir le classement » vers classement.html) ; à omettre pour une tier list
 // actif       : true = visible dans le menu, false = masqué (la ligne peut être omise : visible par défaut)
 window.LISTES = [
   {

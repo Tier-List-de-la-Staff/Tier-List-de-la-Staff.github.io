@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Classement · Qui se cache ?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="jeu.css">
+<style>
+.rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rank li { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+.rank .pos { font-weight: 700; color: var(--mist); font-variant-numeric: tabular-nums; }
+.rank .nm { overflow-wrap: anywhere; font-weight: 600; }
+.rank .pts { font-weight: 700; font-variant-numeric: tabular-nums; }
+.rank li.top .pos, .rank li.top .pts { color: var(--candle); }
+.rank li.top { border: 1px solid var(--candle); }
+.ghosts { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+.g { display: flex; flex-direction: column; gap: 6px; }
+.g img { aspect-ratio: 1 / 1; width: 100%; object-fit: contain; background: #fff; border-radius: 10px; border: 1px solid var(--line); }
+.g b { font-weight: 600; }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--good); }
+.g small { color: var(--mist); }
+</style>
+</head>
+<body>
+<div class="wrap wide">
+  <nav class="topnav">
+    <a href="../">&larr; Menu</a>
+    <a class="next" href="./">Jouer &rarr;</a>
+  </nav>
+  <header>
+    <h1>Classement</h1>
+    <p class="tag" id="lead">Qui reconnaît le mieux ses collègues sous un drap ?</p>
+  </header>
+  <p class="status" id="status" aria-live="polite">Chargement…</p>
+
+  <section class="panel" id="s-rank" hidden>
+    <h2>Les joueurs</h2>
+    <ol class="rank" id="rank"></ol>
+  </section>
+
+  <section class="panel" id="s-locked" hidden>
+    <h2>Les fantômes</h2>
+    <p class="hint">Termine ta partie pour voir qui se cachait sous chaque drap, et qui a été le plus reconnu.</p>
+    <a class="btn primary" href="./">Jouer &rarr;</a>
+  </section>
+
+  <section class="panel" id="s-ghosts" hidden>
+    <h2>Les fantômes</h2>
+    <p class="hint">Part des joueurs qui ont trouvé chaque collègue, du plus reconnu au plus mystérieux.</p>
+    <div class="ghosts" id="ghosts"></div>
+  </section>
+</div>
+
+<script src="../assets/site.js"></script>
+<script src="noms.js"></script>
+<script src="commun.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const { JEU, N, NOMS, photo, isCorrect } = window.QSC;
+  let players;
+  try {
+    const { fs, db } = await window.chargerFirebase();
+    const snap = await fs.getDocs(fs.query(fs.collection(db, window.SITE.collection), fs.where("tierlist", "==", JEU)));
+    players = snap.docs.map(d => d.data() || {}).map(p => {
+      const g = p.guesses || {};
+      return { name: p.participant || "?", date: p.date || 0, score: NOMS.filter((n, i) => isCorrect(g[String(i + 1)], n)).length, g };
+    });
+  } catch (e) {
+    $("status").textContent = "Impossible de charger le classement (connexion ?). Recharge la page.";
+    return;
+  }
+  if (!players.length) { $("status").textContent = "Personne n'a encore joué. Lance-toi !"; return; }
+  $("status").textContent = "";
+  $("lead").textContent = `${players.length} joueur${players.length > 1 ? "s" : ""} · ${N} fantômes`;
+
+  // Classement : meilleur score d'abord, puis le premier arrivé
+  players.sort((a, b) => b.score - a.score || a.date - b.date);
+  const ol = $("rank"), best = players[0].score;
+  let pos = 0;
+  players.forEach((p, k) => {
+    if (k === 0 || p.score !== players[k - 1].score) pos = k + 1;
+    const li = document.createElement("li"); if (p.score === best) li.className = "top";
+    li.innerHTML = '<span class="pos"></span><span class="nm"></span><span class="pts"></span>';
+    li.querySelector(".pos").textContent = pos === 1 ? "🏆" : pos + ".";
+    li.querySelector(".nm").textContent = p.name;
+    li.querySelector(".pts").textContent = `${p.score} / ${N}`;
+    ol.appendChild(li);
+  });
+  $("s-rank").hidden = false;
+
+  // Fantômes, du plus reconnu au plus mystérieux. Montrés seulement à ceux qui ont fini leur partie,
+  // pour ne pas donner les réponses avant de jouer.
+  let fini = false;
+  try { fini = Object.keys((JSON.parse(localStorage.getItem("qsc-partie") || "{}") || {}).locked || {}).length >= N; } catch (e) {}
+  if (!fini) { $("s-locked").hidden = false; return; }
+  const stats = NOMS.map((n, i) => ({ i, n, ok: players.filter(p => isCorrect(p.g[String(i + 1)], n)).length }))
+    .sort((a, b) => b.ok - a.ok || a.i - b.i);
+  const box = $("ghosts");
+  stats.forEach(s => {
+    const pct = Math.round(100 * s.ok / players.length);
+    const el = document.createElement("div"); el.className = "g";
+    el.innerHTML = `<img alt="" loading="lazy"><b></b><div class="bar"><i style="width:${pct}%"></i></div><small>${s.ok} / ${players.length} · ${pct} %</small>`;
+    el.querySelector("img").src = photo(s.i); el.querySelector("b").textContent = s.n;
+    box.appendChild(el);
+  });
+  $("s-ghosts").hidden = false;
+})();
+</script>
+</body>
+</html>

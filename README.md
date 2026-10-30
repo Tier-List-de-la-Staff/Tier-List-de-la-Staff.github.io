@@ -23,20 +23,20 @@ chanson-francaise/      une tier list = un dossier
 ## Jeux
 
 Un jeu est une page autonome dans son propre dossier (pas de `config.js` ni de verdict).
-Dans `listes.js`, son bloc porte `type: "jeu"` : la carte du menu affiche alors un seul bouton « Jouer ».
+Dans `listes.js`, son bloc porte `type: "jeu"` : la carte du menu affiche alors « Jouer » (`index.html`)
+et « Voir le classement » (`classement.html`).
 
-- `qui-se-cache/` : deviner quel collègue se cache sous chaque fantôme.
+- `qui-se-cache/` : deviner quel collègue se cache sous chaque fantôme. Chacun joue seul, comme une tier list.
   - `ghosts/01.jpg` à `21.jpg` : les fantômes ; `photos/01.jpg` à `21.jpg` : les vraies photos ;
     `noms.js` : les vrais prénoms, dans le même ordre. Attention : ces fichiers sont publics,
     un joueur malin peut lire les réponses.
-  - Joueurs (bouton « Jouer » du menu, sur téléphone) : un fantôme par écran. Ils tapent un prénom
-    et valident ; le fantôme se soulève, la photo apparaît avec « Vrai » ou « Faux ». Une réponse
-    validée ne se change plus. Majuscules, accents et trémas ne comptent pas, le prénom seul suffit.
-    Après le 21e, les réponses partent dans Firebase (`submissions`, documents `qui-se-cache__prenom`).
-  - Animateur : ouvrir `qui-se-cache/?animateur` sur l'ordinateur qui projette. Le classement des
-    joueurs se met à jour à chaque « Révéler ». Onglet « Réponses » : le tableau complet.
-    Clavier : ← → naviguer, Espace révéler, F plein écran.
-  - Nouvelle partie : supprimer les documents `qui-se-cache__…` dans la console Firebase.
+  - `index.html` : le joueur donne son prénom, puis un fantôme par écran. Il tape un prénom et valide ;
+    le fantôme s'envole, la photo apparaît avec « Vrai » ou « Faux ». Une réponse validée ne se change plus.
+    Majuscules, accents et trémas ne comptent pas, le prénom seul suffit. Après le 21e, le score part
+    dans Firebase (`submissions`, documents `qui-se-cache__prenom`). Un prénom ne joue qu'une fois.
+  - `classement.html` : tous les joueurs par score, et chaque fantôme du plus reconnu au plus mystérieux.
+  - `commun.js` (correction des réponses) et `jeu.css` servent aux deux pages.
+  - Supprimer un joueur (test, triche) : supprimer son document `qui-se-cache__…` dans la console Firebase.
 
 ## Ajouter une tier list
 
