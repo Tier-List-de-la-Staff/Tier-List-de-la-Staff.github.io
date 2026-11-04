@@ -53,5 +53,12 @@ window.LISTES = [
     description: "Jeu d'Halloween : devine quel collègue se cache sous chaque fantôme.",
     statut: "Halloween",
     actif: true
+  },
+  {
+    dossier: "patisseries",
+    titre: "Meilleures pâtisseries",
+    description: "De l'éclair au Paris-Brest : quelle pâtisserie mérite la première place ? Une seule gagne.",
+    statut: "Nouveau",
+    actif: true
   }
 ];
