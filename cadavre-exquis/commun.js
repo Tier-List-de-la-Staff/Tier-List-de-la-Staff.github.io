@@ -2,7 +2,7 @@
 window.CE = (function () {
   const NOMS = window.CE_NOMS || [];
   const pad = (i) => String(i + 1).padStart(2, "0");
-  // Chaque visage (visages/XX.jpg, 360 x 400 px, aligné sur un visage moyen sans déformation : même place pour les yeux, le nez et la bouche) est découpé en 4 bandes de hauteur fixe.
+  // Chaque visage (visages/XX.jpg, 360 x 400 px, calé sur un visage moyen : même place pour les yeux, le nez et la bouche) est découpé en 4 bandes de hauteur fixe.
   // y = haut de la bande, h = sa hauteur, en pixels de l'image.
   const PARTIES = [
     { nom: "Front", y: 0, h: 108 },

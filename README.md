@@ -41,8 +41,8 @@ et « Voir le classement » (`classement.html`).
     À sa prochaine visite, son téléphone oublie l'ancienne partie et il peut rejouer.
 
 - `cadavre-exquis/` : un mélangeur de visages, sans score ni classement (`classement: false` dans `listes.js`).
-  - `visages/01.jpg` à `21.jpg` : les photos de `qui-se-cache/photos`, alignées sans déformation sur un visage moyen
-    (yeux, nez et bouche à la même place) et découpées en 4 bandes (front 0-108 px, yeux 108-196, nez 196-258, bouche 258-400) ; `noms.js` : les prénoms,
+  - `visages/01.jpg` à `21.jpg` : les photos de `qui-se-cache/photos`, retournées en miroir si besoin (toutes les têtes
+    du même côté), calées et légèrement ajustées sur un visage moyen (yeux, nez et bouche à la même place) et découpées en 4 bandes (front 0-108 px, yeux 108-196, nez 196-258, bouche 258-400) ; `noms.js` : les prénoms,
     dans le même ordre ; `commun.js` : la découpe (`PARTIES`) et le nom de la créature.
   - `index.html` : on change chaque morceau avec les flèches ou en le faisant glisser du doigt, « Tout mélanger »
     tire 4 collègues au hasard, « Remettre d'aplomb » redonne tout au propriétaire du front, et
