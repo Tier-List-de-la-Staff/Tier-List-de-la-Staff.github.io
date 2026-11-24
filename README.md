@@ -40,21 +40,13 @@ et « Voir le classement » (`classement.html`).
   - Supprimer un joueur (test, triche) : supprimer son document `qui-se-cache__…` dans la console Firebase.
     À sa prochaine visite, son téléphone oublie l'ancienne partie et il peut rejouer.
 
-- `cadavre-exquis/` : 7 visages recomposés avec le front, les yeux, le nez et la bouche de 4 collègues différents.
-  Chacun joue seul, comme une tier list.
+- `cadavre-exquis/` : un mélangeur de visages, sans score ni classement (`classement: false` dans `listes.js`).
   - `visages/01.jpg` à `21.jpg` : les photos de `qui-se-cache/photos`, alignées sur les yeux et découpées en
     4 bandes de hauteur fixe (front 0-120 px, yeux 120-208, nez 208-276, bouche 276-400) ; `noms.js` : les prénoms,
-    dans le même ordre.
-  - `commun.js` : la découpe (`PARTIES`), les 7 visages (`MONSTRES`, numéros des collègues pour front, yeux, nez,
-    bouche ; les mêmes pour tout le monde) et la correction.
-  - `index.html` : le joueur écrit son prénom, puis pour chaque visage choisit à qui appartient chaque morceau
-    dans 4 menus et valide : les bandes se décalent puis chaque morceau affiche « Vrai » ou le bon prénom.
-    1 point par morceau, 28 au total. Après le 7e visage, le score part dans Firebase (`submissions`,
-    documents `cadavre-exquis__prenom`). Un prénom ne joue qu'une fois. En fin de partie, l'atelier permet
-    de fabriquer son propre monstre.
-  - `classement.html` : tous les joueurs par score, puis (une fois sa partie finie) la partie du visage la mieux
-    reconnue et les 7 visages avec leurs propriétaires.
-  - Supprimer un joueur : supprimer son document `cadavre-exquis__…` dans la console Firebase ; il peut rejouer.
+    dans le même ordre ; `commun.js` : la découpe (`PARTIES`) et le nom de la créature.
+  - `index.html` : on change chaque morceau avec les flèches ou en le faisant glisser du doigt, « Tout mélanger »
+    tire 4 collègues au hasard, « Remettre d'aplomb » redonne tout au propriétaire du front, et
+    « Enregistrer l'image » télécharge le visage en PNG.
 
 ## Ajouter une tier list
 

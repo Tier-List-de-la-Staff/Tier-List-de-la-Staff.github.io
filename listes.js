@@ -2,6 +2,7 @@
 // dossier     : le nom du dossier de la tier list (le plus simple : le même que son "id" dans config.js)
 // statut      : petit badge sur la carte, par exemple "Ouvert" ou "Nouveau"
 // type        : "jeu" pour un jeu (boutons « Jouer » et « Voir le classement » vers classement.html) ; à omettre pour une tier list
+// classement  : false pour un jeu sans classement (seul le bouton « Jouer » s'affiche)
 // actif       : true = visible dans le menu, false = masqué (la ligne peut être omise : visible par défaut)
 window.LISTES = [
   {
@@ -50,7 +51,8 @@ window.LISTES = [
     dossier: "cadavre-exquis",
     type: "jeu",
     titre: "Cadavre exquis",
-    description: "Front, yeux, nez, bouche : 7 visages recousus avec les morceaux de 4 collègues. À qui est quoi ?",
+    description: "Le front de l'un, les yeux d'un autre, le nez et la bouche de deux autres : mélange les visages des collègues.",
+    classement: false,
     statut: "Nouveau",
     actif: true
   },

@@ -1,8 +1,8 @@
-// Cadavre exquis : ce qui sert à la fois au jeu et au classement.
+// Cadavre exquis : la découpe des visages.
 window.CE = (function () {
   const NOMS = window.CE_NOMS || [];
   const pad = (i) => String(i + 1).padStart(2, "0");
-  // Chaque visage (visages/XX.jpg, 360 x 400 px) est découpé en 4 bandes de hauteur fixe.
+  // Chaque visage (visages/XX.jpg, 360 x 400 px, aligné sur les yeux) est découpé en 4 bandes de hauteur fixe.
   // y = haut de la bande, h = sa hauteur, en pixels de l'image.
   const PARTIES = [
     { nom: "Front", y: 0, h: 120 },
@@ -10,16 +10,8 @@ window.CE = (function () {
     { nom: "Nez", y: 208, h: 68 },
     { nom: "Bouche", y: 276, h: 124 }
   ];
-  const HAUT = 400;
-  // Les 7 visages recomposés, identiques pour tout le monde : numéro du collègue (1 à 21)
-  // pour le front, les yeux, le nez et la bouche. Chacun des 21 apparaît au moins une fois.
-  const MONSTRES = [
-    [11, 6, 12, 8], [20, 19, 8, 7], [20, 2, 17, 5], [17, 4, 13, 11],
-    [7, 21, 18, 14], [9, 21, 15, 3], [15, 1, 16, 10]
-  ].map(m => m.map(n => n - 1));
-  // Majuscules, accents, trémas et ponctuation ne comptent pas.
-  const norm = (t) => (t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-  const isCorrect = (guess, answer) => !!norm(guess) && norm(guess) === norm(answer);
+  const LARGE = 360, HAUT = 400;
+  const src = (id) => `visages/${pad(id)}.jpg`;
 
   // Construit un visage dans `el` : pour chaque bande, le numéro (0 à 20) du collègue.
   function visage(el, ids) {
@@ -36,9 +28,17 @@ window.CE = (function () {
         b.appendChild(img); el.appendChild(b);
       });
     }
-    ids.forEach((id, k) => { el.children[k].firstChild.src = `visages/${pad(id)}.jpg`; });
+    ids.forEach((id, k) => { const img = el.children[k].firstChild; if (img.dataset.id !== String(id)) { img.src = src(id); img.dataset.id = id; } });
     return el;
   }
-  return { JEU: "cadavre-exquis", NOMS, PARTIES, MONSTRES, N: MONSTRES.length * 4, isCorrect, visage,
-    cle: (f, k) => String(f * 4 + k + 1) };
+
+  // Le nom du monstre : un morceau du prénom de chacun (début, milieu, milieu, fin).
+  function surnom(ids) {
+    if (ids.every(id => id === ids[0])) return NOMS[ids[0]];
+    const n = ids.map(id => NOMS[id].toLowerCase());
+    const mid = (s, len) => s.slice(Math.max(0, Math.floor((s.length - len) / 2)), Math.max(0, Math.floor((s.length - len) / 2)) + len);
+    const w = n[0].slice(0, 3) + mid(n[1], 2) + mid(n[2], 2) + n[3].slice(-3);
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }
+  return { NOMS, PARTIES, LARGE, HAUT, src, visage, surnom };
 })();

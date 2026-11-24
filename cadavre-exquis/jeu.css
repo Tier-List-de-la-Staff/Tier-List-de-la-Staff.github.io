@@ -53,5 +53,3 @@ select:disabled { opacity: 1; cursor: default; color: var(--ink); }
 .face { position: relative; aspect-ratio: 360 / 400; border-radius: 50%; overflow: hidden; background: #ddd; display: flex; flex-direction: column; isolation: isolate; }
 .face .band { position: relative; overflow: hidden; flex: none; transition: transform .45s cubic-bezier(.3,1.4,.5,1), filter .2s ease; }
 .face .band img { position: absolute; left: 0; width: 100%; max-width: none; user-select: none; -webkit-user-select: none; }
-.face.focus .band { filter: grayscale(.8) brightness(.75); }
-.face.focus .band.on { filter: none; }
