@@ -47,6 +47,14 @@ window.LISTES = [
     actif: true
   },
   {
+    dossier: "cadavre-exquis",
+    type: "jeu",
+    titre: "Cadavre exquis",
+    description: "Front, yeux, nez, bouche : 7 visages recousus avec les morceaux de 4 collègues. À qui est quoi ?",
+    statut: "Nouveau",
+    actif: true
+  },
+  {
     dossier: "qui-se-cache",
     type: "jeu",
     titre: "Qui se cache ?",

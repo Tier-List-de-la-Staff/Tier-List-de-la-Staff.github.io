@@ -1,0 +1,57 @@
+/* Cadavre exquis : styles communs au jeu et au classement. Papier, encre, touche de rouge surréaliste. */
+:root {
+  --paper: #f3ede1;
+  --card: #fbf8f2;
+  --line: #ddd3c1;
+  --ink: #1f1b16;
+  --muted: #6f665a;
+  --red: #c4372b;
+  --red-ink: #fff6f2;
+  --good: #2f7d4f;
+  --good-bg: #dcefe2;
+  --bad: #b23a2f;
+  --bad-bg: #f6dcd8;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--font-body); }
+img { max-width: 100%; }
+.wrap {
+  max-width: 560px; margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; gap: 18px;
+}
+.wrap.wide { max-width: 900px; }
+.topnav, .links { display: flex; justify-content: space-between; gap: 14px; font-weight: 600; }
+.topnav a, .links a { color: var(--muted); text-decoration: none; }
+.topnav a:hover, .links a:hover { color: var(--ink); }
+.topnav a.next, .links a.next { color: var(--red); }
+h1 { font-family: var(--font-display); font-weight: 700; font-style: italic; font-size: clamp(40px, 11vw, 60px); line-height: .95; margin: 0; letter-spacing: -.01em; }
+h1 span { color: var(--red); }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 26px; margin: 0; }
+.tag { color: var(--muted); margin: 6px 0 0; }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+input[type="text"], select { width: 100%; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: 16px var(--font-body); }
+select { appearance: none; -webkit-appearance: none; padding-right: 32px; cursor: pointer;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%236f665a' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 12px center; }
+select:disabled { opacity: 1; cursor: default; color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 600 15px var(--font-body); cursor: pointer; text-decoration: none; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--red); border-color: var(--red); color: var(--red-ink); }
+.btn:disabled { opacity: .4; cursor: default; }
+.hint { color: var(--muted); font-size: 14px; margin: 0; }
+.status { color: var(--red); font-size: 14px; margin: 0; min-height: 1.2em; }
+.linkish { background: none; border: 0; padding: 0; color: var(--red); text-decoration: underline; cursor: pointer; font: inherit; }
+
+/* Un visage recomposé : 4 bandes empilées dans un ovale */
+.face { position: relative; aspect-ratio: 360 / 400; border-radius: 50%; overflow: hidden; background: #ddd; display: flex; flex-direction: column; isolation: isolate; }
+.face .band { position: relative; overflow: hidden; flex: none; transition: transform .45s cubic-bezier(.3,1.4,.5,1), filter .2s ease; }
+.face .band img { position: absolute; left: 0; width: 100%; max-width: none; user-select: none; -webkit-user-select: none; }
+.face.focus .band { filter: grayscale(.8) brightness(.75); }
+.face.focus .band.on { filter: none; }

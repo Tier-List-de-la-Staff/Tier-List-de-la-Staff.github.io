@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cadavre exquis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="jeu.css">
+<style>
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.me { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; max-width: 280px; }
+.me label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.me input { padding: 8px 10px; font-size: 16px; }
+.me input.set { border-color: var(--good); }
+.one-top { display: flex; justify-content: space-between; align-items: baseline; }
+.one-top small { color: var(--muted); }
+.stage { width: min(100%, 300px); margin: 0 auto; }
+.face.mix .band:nth-child(odd) { animation: slideL .9s ease; }
+.face.mix .band:nth-child(even) { animation: slideR .9s ease; }
+@keyframes slideL { 0%, 100% { transform: none; } 40% { transform: translateX(-18%); } }
+@keyframes slideR { 0%, 100% { transform: none; } 40% { transform: translateX(18%); } }
+.rows { display: flex; flex-direction: column; gap: 8px; }
+.row { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); align-items: center; gap: 10px; }
+.row > b { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.pick { position: relative; }
+.row .res { grid-column: 2; display: none; font-weight: 600; font-size: 14px; padding: 2px 0 0; }
+.row.ok select { border-color: var(--good); background-color: var(--good-bg); }
+.row.ko select { border-color: var(--bad); background-color: var(--bad-bg); text-decoration: line-through; }
+.row.ok .res, .row.ko .res { display: block; }
+.row.ok .res { color: var(--good); }
+.row.ko .res { color: var(--bad); }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; }
+.end { text-align: center; align-items: center; }
+.end .big { font-family: var(--font-display); font-style: italic; font-size: 64px; line-height: 1; color: var(--red); }
+.atelier .face { width: min(100%, 300px); margin: 0 auto; }
+.knobs { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.knob { display: grid; grid-template-columns: 4.6em 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
+.knob b { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-align: left; }
+.knob span { text-align: center; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.knob .btn { padding: 8px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div class="me">
+      <label for="first">Prénom</label>
+      <input type="text" id="first" autocomplete="given-name" placeholder="Ton prénom" maxlength="40">
+    </div>
+    <nav class="links"><a href="../">&larr; Menu</a><a class="next" href="classement.html">Classement &rarr;</a></nav>
+  </div>
+  <header>
+    <h1>Cadavre <span>exquis</span></h1>
+    <p class="tag">7 visages recousus avec les morceaux de 4 collègues. À qui sont ce front, ces yeux, ce nez et cette bouche&nbsp;?</p>
+  </header>
+
+  <section class="panel" id="v-play">
+    <div class="one-top"><h2 id="counter"></h2><small id="counter-sub"></small></div>
+    <div class="stage"><div id="face"></div></div>
+    <div class="rows" id="rows"></div>
+    <button class="btn primary" id="main" type="button">Valider</button>
+    <p class="status" id="status" aria-live="polite"></p>
+    <div class="foot"><button class="linkish" id="prev" type="button">&larr; Précédent</button><span id="score"></span></div>
+  </section>
+
+  <section class="panel end" id="v-end" hidden>
+    <h2>Partie terminée</h2>
+    <div class="big" id="final"></div>
+    <p class="hint" id="end-msg"></p>
+    <p class="status" id="send-status" aria-live="polite"></p>
+    <button class="btn" id="retry" type="button" hidden>Réessayer l'envoi</button>
+    <a class="btn primary" href="classement.html">Voir le classement &rarr;</a>
+    <button class="linkish" id="review" type="button">Revoir mes réponses</button>
+  </section>
+
+  <section class="panel end atelier" id="v-atelier" hidden>
+    <h2>L'atelier</h2>
+    <p class="hint">Fabrique ton propre monstre avec les morceaux de tout le monde.</p>
+    <div id="mix-face"></div>
+    <div class="knobs" id="knobs"></div>
+    <button class="btn" id="dice" type="button">🎲 Au hasard</button>
+  </section>
+</div>
+
+<script src="../assets/site.js"></script>
+<script src="noms.js"></script>
+<script src="commun.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const { JEU, N, NOMS, PARTIES, MONSTRES, isCorrect, visage, cle } = window.CE;
+  const F = MONSTRES.length, KEY = "ce-partie";
+  // Partie en cours, gardée sur le téléphone : { name, guesses: {"1": "Camille", ...}, locked: {"1": true}, sent }
+  // guesses : une réponse par morceau (visage f, partie k -> clé f*4+k+1) ; locked : un visage validé.
+  let me = { name: "", guesses: {}, locked: {}, sent: false }, cur = 0;
+  try { const d = JSON.parse(localStorage.getItem(KEY) || "null"); if (d && typeof d.name === "string") me = Object.assign(me, d); } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(me)); } catch (e) {} };
+  const done = () => Object.keys(me.locked).length;
+  const okFace = (f) => PARTIES.filter((p, k) => isCorrect(me.guesses[cle(f, k)], NOMS[MONSTRES[f][k]])).length;
+  const good = () => Object.keys(me.locked).reduce((s, f) => s + okFace(+f - 1), 0);
+  const refFor = (fs, db, name) => fs.doc(db, window.SITE.collection, JEU + "__" + name.toLowerCase());
+
+  function show(v) { $("v-play").hidden = v !== "play"; $("v-end").hidden = v !== "end"; $("v-atelier").hidden = v !== "end"; }
+
+  /* ---------- Prénom (en haut à gauche) ---------- */
+  function renderName() {
+    const f = $("first"); f.value = me.name; f.disabled = done() > 0; f.classList.toggle("set", !!me.name);
+  }
+  $("first").addEventListener("input", () => { me.name = $("first").value.trim().replace(/\//g, ""); save(); $("first").classList.toggle("set", !!me.name); });
+  $("first").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("rows").querySelector("select").focus(); } });
+  async function nameFree(name) {
+    try {
+      const { fs, db } = await window.chargerFirebase();
+      return !(await fs.getDoc(refFor(fs, db, name))).exists();
+    } catch (e) { return true; }
+  }
+
+  /* ---------- Les 4 menus, un par morceau ---------- */
+  const tri = NOMS.map((n, i) => i).sort((a, b) => NOMS[a].localeCompare(NOMS[b], "fr"));
+  const face = $("face");
+  visage(face, MONSTRES[0]);
+  PARTIES.forEach((p, k) => {
+    const row = document.createElement("div"); row.className = "row";
+    row.innerHTML = `<b></b><select aria-label=""><option value="">À qui ?</option></select><span class="res"></span>`;
+    row.querySelector("b").textContent = p.nom;
+    const sel = row.querySelector("select"); sel.setAttribute("aria-label", p.nom);
+    tri.forEach(i => { const o = document.createElement("option"); o.value = o.textContent = NOMS[i]; sel.appendChild(o); });
+    // Le morceau concerné ressort sur le visage pendant qu'on choisit.
+    sel.addEventListener("focus", () => { face.classList.add("focus"); face.children[k].classList.add("on"); });
+    sel.addEventListener("blur", () => { face.classList.remove("focus"); face.children[k].classList.remove("on"); });
+    sel.addEventListener("change", () => { me.guesses[cle(cur, k)] = sel.value; save(); $("status").textContent = ""; });
+    $("rows").appendChild(row);
+  });
+  const rows = () => [...$("rows").children];
+
+  function setVerdicts() {
+    rows().forEach((row, k) => {
+      const ans = NOMS[MONSTRES[cur][k]], ok = isCorrect(me.guesses[cle(cur, k)], ans);
+      row.classList.toggle("ok", ok); row.classList.toggle("ko", !ok);
+      row.querySelector(".res").textContent = ok ? "Vrai !" : `Faux : c'est ${ans}`;
+    });
+  }
+  function render() {
+    const isDone = !!me.locked[String(cur + 1)];
+    renderName();
+    $("counter").textContent = `Visage ${cur + 1}`;
+    $("counter-sub").textContent = `sur ${F}`;
+    visage(face, MONSTRES[cur]); face.classList.remove("mix");
+    rows().forEach((row, k) => {
+      const sel = row.querySelector("select");
+      sel.value = me.guesses[cle(cur, k)] || ""; sel.disabled = isDone;
+      row.classList.remove("ok", "ko");
+    });
+    if (isDone) setVerdicts();
+    $("prev").hidden = cur === 0;
+    $("main").textContent = !isDone ? "Valider" : cur < F - 1 ? "Visage suivant →" : "Résultat →";
+    $("score").textContent = `Score : ${good()} / ${done() * 4}`;
+    $("status").textContent = "";
+  }
+  async function validate() {
+    if (!me.name) { $("status").textContent = "Écris d'abord ton prénom en haut à gauche."; $("first").focus(); return; }
+    const missing = PARTIES.filter((p, k) => !me.guesses[cle(cur, k)]).map(p => p.nom.toLowerCase());
+    if (missing.length) { $("status").textContent = `Il manque : ${missing.join(", ")}.`; return; }
+    if (!done()) {
+      $("main").disabled = true;
+      const free = await nameFree(me.name);
+      $("main").disabled = false;
+      if (!free) { $("status").textContent = `Le prénom « ${me.name} » a déjà joué. Ajoute l'initiale de ton nom (ex. ${me.name} M.).`; $("first").focus(); return; }
+    }
+    me.locked[String(cur + 1)] = true; save();
+    rows().forEach(r => { r.querySelector("select").disabled = true; });
+    renderName();
+    face.classList.remove("mix"); void face.offsetWidth; face.classList.add("mix");
+    setVerdicts();
+    $("main").textContent = cur < F - 1 ? "Visage suivant →" : "Résultat →";
+    $("score").textContent = `Score : ${good()} / ${done() * 4}`;
+    if (done() >= F && !me.sent) send();
+  }
+  $("main").onclick = () => {
+    if (!me.locked[String(cur + 1)]) return validate();
+    if (cur < F - 1) { cur++; render(); window.scrollTo({ top: $("v-play").offsetTop - 10, behavior: "smooth" }); }
+    else end();
+  };
+  $("prev").onclick = () => { if (cur > 0) { cur--; render(); } };
+
+  /* ---------- Fin ---------- */
+  function end() {
+    const s = good();
+    $("final").textContent = `${s} / ${N}`;
+    $("end-msg").textContent = s === N ? "Sans faute : tu reconnais tes collègues morceau par morceau !" : s >= N * .7 ? "Bel œil, même en pièces détachées." : s >= N / 3 ? "Pas mal, mais certains morceaux t'ont bien eu." : "Ces monstres t'ont complètement perdu.";
+    renderName(); show("end"); atelier();
+    if (me.sent) $("send-status").textContent = "Score envoyé.";
+    else send();
+  }
+  async function send() {
+    $("retry").hidden = true;
+    $("send-status").textContent = "Envoi de ton score…";
+    try {
+      const { fs, db } = await window.chargerFirebase();
+      try {
+        await fs.setDoc(refFor(fs, db, me.name), { tierlist: JEU, participant: me.name, guesses: me.guesses, date: Date.now() });
+      } catch (e) {
+        // Refusé si le document existe déjà : un envoi précédent a donc réussi.
+        if (!(await fs.getDoc(refFor(fs, db, me.name))).exists()) throw e;
+      }
+      me.sent = true; save();
+      $("send-status").textContent = "Score envoyé.";
+    } catch (e) {
+      $("send-status").textContent = "L'envoi n'a pas marché (connexion ?).";
+      $("retry").hidden = false;
+    }
+  }
+  $("retry").onclick = send;
+  $("review").onclick = () => { cur = 0; render(); show("play"); window.scrollTo(0, 0); };
+
+  /* ---------- L'atelier (après la partie) ---------- */
+  let mix = null;
+  function atelier() {
+    if (mix) return;
+    mix = [0, 1, 2, 3].map(() => Math.floor(Math.random() * NOMS.length));
+    const mf = $("mix-face");
+    PARTIES.forEach((p, k) => {
+      const kn = document.createElement("div"); kn.className = "knob";
+      kn.innerHTML = `<b></b><button class="btn" type="button" aria-label="Précédent">◀</button><span></span><button class="btn" type="button" aria-label="Suivant">▶</button>`;
+      kn.querySelector("b").textContent = p.nom;
+      const [a, b] = kn.querySelectorAll("button");
+      a.onclick = () => { mix[k] = (mix[k] + NOMS.length - 1) % NOMS.length; draw(); };
+      b.onclick = () => { mix[k] = (mix[k] + 1) % NOMS.length; draw(); };
+      $("knobs").appendChild(kn);
+    });
+    const draw = () => { visage(mf, mix); [...$("knobs").children].forEach((kn, k) => { kn.querySelector("span").textContent = NOMS[mix[k]]; }); };
+    $("dice").onclick = () => { mix = mix.map(() => Math.floor(Math.random() * NOMS.length)); draw(); mf.classList.remove("mix"); void mf.offsetWidth; mf.classList.add("mix"); };
+    draw();
+  }
+
+  /* ---------- Démarrage ---------- */
+  function start() {
+    if (done() >= F) end();
+    else { cur = Math.min(F - 1, done()); render(); show("play"); }
+  }
+  start();
+  // Score déjà envoyé mais supprimé de Firebase depuis (nouvelle partie, test effacé) :
+  // on oublie la partie gardée sur ce téléphone pour pouvoir rejouer.
+  if (me.sent && me.name) {
+    (async () => {
+      try {
+        const { fs, db } = await window.chargerFirebase();
+        if ((await fs.getDoc(refFor(fs, db, me.name))).exists()) return;
+      } catch (e) { return; }
+      me = { name: "", guesses: {}, locked: {}, sent: false }; save();
+      $("send-status").textContent = ""; start();
+    })();
+  }
+})();
+</script>
+</body>
+</html>

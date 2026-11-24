@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Classement · Cadavre exquis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="jeu.css">
+<style>
+.rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rank li { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--paper); }
+.rank .pos { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rank .nm { overflow-wrap: anywhere; font-weight: 600; }
+.rank .pts { font-weight: 700; font-variant-numeric: tabular-nums; }
+.rank li.top .pos, .rank li.top .pts { color: var(--red); }
+.rank li.top { border: 1px solid var(--red); }
+.traits { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.trait { display: flex; flex-direction: column; gap: 6px; }
+.trait b { font-weight: 600; }
+.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--red); }
+.trait small, .m small { color: var(--muted); }
+.monstres { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+.m { display: flex; flex-direction: column; gap: 8px; }
+.m ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.m li { display: flex; justify-content: space-between; gap: 8px; }
+.m li span { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap wide">
+  <nav class="topnav">
+    <a href="../">&larr; Menu</a>
+    <a class="next" href="./">Jouer &rarr;</a>
+  </nav>
+  <header>
+    <h1>Classement</h1>
+    <p class="tag" id="lead">Qui reconnaît ses collègues en pièces détachées ?</p>
+  </header>
+  <p class="status" id="status" aria-live="polite">Chargement…</p>
+
+  <section class="panel" id="s-rank" hidden>
+    <h2>Les joueurs</h2>
+    <ol class="rank" id="rank"></ol>
+  </section>
+
+  <section class="panel" id="s-locked" hidden>
+    <h2>Les monstres</h2>
+    <p class="hint">Termine ta partie pour voir à qui appartenait chaque morceau, et quels traits trahissent le plus.</p>
+    <a class="btn primary" href="./">Jouer &rarr;</a>
+  </section>
+
+  <section class="panel" id="s-traits" hidden>
+    <h2>Ce qui trahit le plus</h2>
+    <p class="hint">Part des morceaux bien reconnus, par partie du visage.</p>
+    <div class="traits" id="traits"></div>
+  </section>
+
+  <section class="panel" id="s-monstres" hidden>
+    <h2>Les monstres</h2>
+    <p class="hint">À qui était chaque morceau, et combien de joueurs l'ont trouvé.</p>
+    <div class="monstres" id="monstres"></div>
+  </section>
+</div>
+
+<script src="../assets/site.js"></script>
+<script src="noms.js"></script>
+<script src="commun.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const { JEU, N, NOMS, PARTIES, MONSTRES, isCorrect, visage, cle } = window.CE;
+  const trouve = (g, f, k) => isCorrect(g[cle(f, k)], NOMS[MONSTRES[f][k]]);
+  let players;
+  try {
+    const { fs, db } = await window.chargerFirebase();
+    const snap = await fs.getDocs(fs.query(fs.collection(db, window.SITE.collection), fs.where("tierlist", "==", JEU)));
+    players = snap.docs.map(d => d.data() || {}).map(p => {
+      const g = p.guesses || {};
+      let score = 0;
+      MONSTRES.forEach((m, f) => PARTIES.forEach((x, k) => { if (trouve(g, f, k)) score++; }));
+      return { name: p.participant || "?", date: p.date || 0, score, g };
+    });
+  } catch (e) {
+    $("status").textContent = "Impossible de charger le classement (connexion ?). Recharge la page.";
+    return;
+  }
+  if (!players.length) { $("status").textContent = "Personne n'a encore joué. Lance-toi !"; return; }
+  $("status").textContent = "";
+  $("lead").textContent = `${players.length} joueur${players.length > 1 ? "s" : ""} · ${MONSTRES.length} visages, ${N} morceaux`;
+
+  // Classement : meilleur score d'abord, puis le premier arrivé
+  players.sort((a, b) => b.score - a.score || a.date - b.date);
+  const ol = $("rank"), best = players[0].score;
+  let pos = 0;
+  players.forEach((p, k) => {
+    if (k === 0 || p.score !== players[k - 1].score) pos = k + 1;
+    const li = document.createElement("li"); if (p.score === best) li.className = "top";
+    li.innerHTML = '<span class="pos"></span><span class="nm"></span><span class="pts"></span>';
+    li.querySelector(".pos").textContent = pos === 1 ? "🏆" : pos + ".";
+    li.querySelector(".nm").textContent = p.name;
+    li.querySelector(".pts").textContent = `${p.score} / ${N}`;
+    ol.appendChild(li);
+  });
+  $("s-rank").hidden = false;
+
+  // Les réponses ne sont montrées qu'à ceux qui ont fini leur partie.
+  let fini = false;
+  try { fini = Object.keys((JSON.parse(localStorage.getItem("ce-partie") || "{}") || {}).locked || {}).length >= MONSTRES.length; } catch (e) {}
+  if (!fini) { $("s-locked").hidden = false; return; }
+
+  const P = players.length, pct = (n, t) => Math.round(100 * n / t);
+  PARTIES.forEach((x, k) => {
+    let ok = 0;
+    players.forEach(p => MONSTRES.forEach((m, f) => { if (trouve(p.g, f, k)) ok++; }));
+    const v = pct(ok, P * MONSTRES.length);
+    const el = document.createElement("div"); el.className = "trait";
+    el.innerHTML = `<b></b><div class="meter"><i style="width:${v}%"></i></div><small>${v} % trouvés</small>`;
+    el.querySelector("b").textContent = x.nom;
+    $("traits").appendChild(el);
+  });
+  $("s-traits").hidden = false;
+
+  MONSTRES.forEach((m, f) => {
+    const el = document.createElement("div"); el.className = "m";
+    const fc = document.createElement("div"); el.appendChild(fc); visage(fc, m);
+    const ul = document.createElement("ul");
+    PARTIES.forEach((x, k) => {
+      const li = document.createElement("li");
+      li.innerHTML = "<b></b><span></span>";
+      li.querySelector("b").textContent = `${x.nom} : ${NOMS[m[k]]}`;
+      li.querySelector("span").textContent = `${pct(players.filter(p => trouve(p.g, f, k)).length, P)} %`;
+      ul.appendChild(li);
+    });
+    el.appendChild(ul);
+    $("monstres").appendChild(el);
+  });
+  $("s-monstres").hidden = false;
+})();
+</script>
+</body>
+</html>
