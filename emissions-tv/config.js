@@ -29,6 +29,7 @@ window.TIERLIST = {
     { nom: "Recherche appartement ou maison", image: "img/recherche-appartement-ou-maison.jpg" },
     { nom: "Secret Story", image: "img/secret-story.jpg" },
     { nom: "Touche pas à mon poste", image: "img/touche-pas-a-mon-poste.jpg" },
-    { nom: "Vendredi tout est permis", image: "img/vendredi-tout-est-permis.jpg" }
+    { nom: "Vendredi tout est permis", image: "img/vendredi-tout-est-permis.jpg" },
+    { nom: "4 mariages pour 1 lune de miel", image: "img/4-mariages-pour-1-lune-de-miel.jpg" }
   ]
 };
