@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Les créatures · Cadavre exquis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="jeu.css">
+<style>
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.me { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; max-width: 280px; }
+.me label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.me input { padding: 8px 10px; font-size: 16px; }
+.me input.set { border-color: var(--good); }
+.vote-state { font-weight: 600; margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
+.c { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; background: var(--paper); border: 1px solid transparent; }
+.c.top { border-color: var(--red); }
+.c.mine { background: var(--good-bg); }
+.c .rk { position: absolute; top: 8px; left: 10px; z-index: 2; background: var(--ink); color: var(--paper); font-weight: 700; font-size: 13px; border-radius: 999px; padding: 2px 9px; font-variant-numeric: tabular-nums; }
+.c.top .rk { background: var(--red); }
+.c h3 { font-family: var(--font-display); font-style: italic; font-weight: 700; font-size: 22px; line-height: 1.05; margin: 2px 0 0; overflow-wrap: anywhere; }
+.c .by { color: var(--muted); font-size: 14px; margin: 0; }
+.c .parts { color: var(--muted); font-size: 12px; margin: 0; }
+.c .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.c .n { font-weight: 700; font-variant-numeric: tabular-nums; }
+.c .btn { padding: 8px 12px; font-size: 14px; white-space: nowrap; }
+.c .foot { flex-wrap: wrap; }
+.c .n { white-space: nowrap; }
+.c .btn.voted { background: var(--good); border-color: var(--good); color: #fff; opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap wide">
+  <div class="bar">
+    <div class="me">
+      <label for="first">Prénom</label>
+      <input type="text" id="first" autocomplete="given-name" placeholder="Ton prénom" maxlength="40">
+    </div>
+    <nav class="links"><a href="../">&larr; Menu</a><a class="next" href="./">Fabriquer la mienne &rarr;</a></nav>
+  </div>
+  <header>
+    <h1>Les <span>créatures</span></h1>
+    <p class="tag" id="lead">Toutes les créatures envoyées. Une voix par personne, et pas pour la sienne.</p>
+  </header>
+  <p class="vote-state" id="state" aria-live="polite"></p>
+  <p class="status" id="status" aria-live="polite">Chargement…</p>
+  <section class="grid" id="grid" hidden></section>
+</div>
+
+<script src="../assets/site.js"></script>
+<script src="noms.js"></script>
+<script src="commun.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const { NOMS, PARTIES, visage, surnom, JEU, VOTE, okMix, ref, cleanName } = window.CE;
+  const low = (s) => (s || "").toLowerCase();
+  // Même prénom que sur la page de l'atelier
+  let name = "";
+  try { name = (JSON.parse(localStorage.getItem("ce-envoi") || "null") || {}).name || ""; } catch (e) {}
+  try { name = localStorage.getItem("ce-votant") || name; } catch (e) {}
+  const f = $("first"); f.value = name; f.classList.toggle("set", !!name);
+  f.addEventListener("input", () => { name = cleanName(f.value); f.classList.toggle("set", !!name); try { localStorage.setItem("ce-votant", name); } catch (e) {} render(); });
+
+  let fs, db, creatures = [], votes = [];
+  async function load() {
+    ({ fs, db } = await window.chargerFirebase());
+    const col = fs.collection(db, window.SITE.collection);
+    const [a, b] = await Promise.all([
+      fs.getDocs(fs.query(col, fs.where("tierlist", "==", JEU))),
+      fs.getDocs(fs.query(col, fs.where("tierlist", "==", VOTE)))
+    ]);
+    creatures = a.docs.map(d => d.data() || {}).filter(c => c.participant && okMix(c.mix));
+    votes = b.docs.map(d => d.data() || {}).filter(v => v.participant && v.pour);
+  }
+  try { await load(); } catch (e) {
+    $("status").textContent = "Impossible de charger les créatures (connexion ?). Recharge la page.";
+    return;
+  }
+  $("status").textContent = "";
+
+  let pending = null; // créature en attente de confirmation
+  function render() {
+    if (!creatures.length) { $("status").textContent = "Personne n'a encore envoyé de créature. Lance-toi !"; $("grid").hidden = true; return; }
+    const count = {}; votes.forEach(v => { count[low(v.pour)] = (count[low(v.pour)] || 0) + 1; });
+    const mine = votes.find(v => low(v.participant) === low(name));
+    const list = creatures.map(c => ({ ...c, n: count[low(c.participant)] || 0 }))
+      .sort((a, b) => b.n - a.n || (a.date || 0) - (b.date || 0));
+    $("lead").textContent = `${creatures.length} créature${creatures.length > 1 ? "s" : ""} · ${votes.length} vote${votes.length > 1 ? "s" : ""}. Une voix par personne, et pas pour la sienne.`;
+    $("state").textContent = !name ? "Écris ton prénom en haut à gauche pour voter."
+      : mine ? `Ton vote : la créature signée ${(creatures.find(c => low(c.participant) === low(mine.pour)) || { participant: mine.pour }).participant}.`
+      : "Choisis ta créature préférée.";
+    const best = list[0].n, g = $("grid"); g.innerHTML = "";
+    let pos = 0;
+    list.forEach((c, i) => {
+      if (i === 0 || c.n !== list[i - 1].n) pos = i + 1;
+      const own = !!name && low(c.participant) === low(name);
+      const el = document.createElement("article");
+      el.className = "c" + (best > 0 && c.n === best ? " top" : "") + (own ? " mine" : "");
+      el.innerHTML = `<span class="rk"></span><div class="fc"></div><h3></h3><p class="by"></p><p class="parts"></p><div class="foot"><span class="n"></span><button class="btn" type="button"></button></div>`;
+      el.querySelector(".rk").textContent = best > 0 && c.n === best ? "🏆 " + pos : String(pos);
+      visage(el.querySelector(".fc"), c.mix);
+      el.querySelector("h3").textContent = surnom(c.mix);
+      el.querySelector(".by").textContent = `par ${c.participant}`;
+      el.querySelector(".parts").textContent = PARTIES.map((p, k) => `${p.nom} ${NOMS[c.mix[k]]}`).join(" · ");
+      el.querySelector(".n").textContent = `${c.n} vote${c.n > 1 ? "s" : ""}`;
+      const btn = el.querySelector("button");
+      if (mine) {
+        const it = low(mine.pour) === low(c.participant);
+        btn.textContent = it ? "Ton vote ✓" : "Voter"; btn.disabled = true; if (it) btn.classList.add("voted");
+        if (!it) btn.hidden = true;
+      } else if (own) { btn.textContent = "C'est la tienne"; btn.disabled = true; }
+      else {
+        const conf = pending === low(c.participant);
+        btn.textContent = conf ? "Confirmer mon vote" : "Voter";
+        if (conf) btn.classList.add("primary");
+        btn.onclick = () => conf ? vote(c) : (pending = low(c.participant), render());
+      }
+      g.appendChild(el);
+    });
+    g.hidden = false;
+  }
+
+  async function vote(c) {
+    if (!name) { $("status").textContent = "Écris d'abord ton prénom en haut à gauche."; f.focus(); return; }
+    $("status").textContent = "Envoi de ton vote…";
+    const r = ref(fs, db, VOTE, name);
+    try {
+      if ((await fs.getDoc(r)).exists()) {
+        $("status").textContent = `Le prénom « ${name} » a déjà voté. Si ce n'est pas toi, ajoute l'initiale de ton nom.`;
+        await load(); pending = null; render(); return;
+      }
+      await fs.setDoc(r, { tierlist: VOTE, participant: name, pour: c.participant, date: Date.now() });
+      await load(); pending = null;
+      $("status").textContent = "Vote enregistré, merci !";
+      render();
+    } catch (e) { $("status").textContent = "Le vote n'est pas passé (connexion ?). Réessaie."; }
+  }
+  render();
+})();
+</script>
+</body>
+</html>

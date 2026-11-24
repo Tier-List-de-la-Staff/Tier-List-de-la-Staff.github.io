@@ -40,5 +40,12 @@ window.CE = (function () {
     const w = n[0].slice(0, 3) + mid(n[1], 2) + mid(n[2], 2) + n[3].slice(-3);
     return w.charAt(0).toUpperCase() + w.slice(1);
   }
-  return { NOMS, PARTIES, LARGE, HAUT, src, visage, surnom };
+  // Envois dans Firebase (collection `submissions`) :
+  //   créature : document `cadavre-exquis__prenom`      { tierlist, participant, mix: [front, yeux, nez, bouche], date }
+  //   vote     : document `cadavre-exquis-vote__prenom` { tierlist, participant, pour: prénom de l'auteur, date }
+  const JEU = "cadavre-exquis", VOTE = "cadavre-exquis-vote";
+  const okMix = (m) => Array.isArray(m) && m.length === 4 && m.every(n => Number.isInteger(n) && n >= 0 && n < NOMS.length);
+  const ref = (fs, db, jeu, name) => fs.doc(db, window.SITE.collection, jeu + "__" + name.toLowerCase());
+  const cleanName = (t) => (t || "").trim().replace(/\//g, "").replace(/\s+/g, " ").slice(0, 40);
+  return { NOMS, PARTIES, LARGE, HAUT, src, visage, surnom, JEU, VOTE, okMix, ref, cleanName };
 })();

@@ -40,13 +40,20 @@ et « Voir le classement » (`classement.html`).
   - Supprimer un joueur (test, triche) : supprimer son document `qui-se-cache__…` dans la console Firebase.
     À sa prochaine visite, son téléphone oublie l'ancienne partie et il peut rejouer.
 
-- `cadavre-exquis/` : un mélangeur de visages, sans score ni classement (`classement: false` dans `listes.js`).
+- `cadavre-exquis/` : chacun fabrique une créature avec les morceaux des collègues, l'envoie avec son prénom,
+  puis tout le monde vote pour sa préférée.
   - `visages/01.jpg` à `21.jpg` : les photos de `qui-se-cache/photos`, retournées en miroir si besoin (toutes les têtes
-    du même côté), calées et légèrement ajustées sur un visage moyen (yeux, nez et bouche à la même place) et découpées en 4 bandes (front 0-108 px, yeux 108-196, nez 196-258, bouche 258-400) ; `noms.js` : les prénoms,
-    dans le même ordre ; `commun.js` : la découpe (`PARTIES`) et le nom de la créature.
-  - `index.html` : on change chaque morceau avec les flèches ou en le faisant glisser du doigt, « Tout mélanger »
-    tire 4 collègues au hasard, « Remettre d'aplomb » redonne tout au propriétaire du front, et
-    « Enregistrer l'image » télécharge le visage en PNG.
+    du même côté), calées et légèrement ajustées sur un visage moyen (yeux, nez et bouche à la même place) et découpées
+    en 4 bandes (front 0-108 px, yeux 108-196, nez 196-258, bouche 258-400) ; `noms.js` : les prénoms, dans le même
+    ordre ; `commun.js` : la découpe (`PARTIES`), le nom de la créature et les noms des documents Firebase.
+  - `index.html` (l'atelier) : on change chaque morceau avec les flèches ou en le faisant glisser du doigt,
+    « Tout mélanger » tire 4 collègues au hasard, « Remettre d'aplomb » redonne tout au propriétaire du front,
+    « Enregistrer l'image » télécharge le visage en PNG. « Envoyer ma créature » l'enregistre dans Firebase
+    (`submissions`, document `cadavre-exquis__prenom`, champ `mix`). Une créature par prénom.
+  - `classement.html` (les créatures) : toutes les créatures, de la plus votée à la moins votée. Chacun vote
+    une seule fois pour sa préférée, pas pour la sienne (document `cadavre-exquis-vote__prenom`, champ `pour`).
+  - Supprimer une créature ou un vote : supprimer le document `cadavre-exquis__…` ou `cadavre-exquis-vote__…`
+    dans la console Firebase. La personne peut alors renvoyer une créature ou revoter.
 
 ## Ajouter une tier list
 

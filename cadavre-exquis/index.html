@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="jeu.css">
 <style>
 .wrap { max-width: 860px; }
+@media (max-width: 420px) { .sent { grid-template-columns: 90px minmax(0, 1fr); } #sent-face { width: 90px; } }
 .atelier { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: center; }
 @media (max-width: 680px) { .atelier { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
 .stage { display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -28,15 +29,29 @@
 .knob .btn { padding: 10px 0; font-size: 14px; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
 .actions .btn.wide { grid-column: 1 / -1; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.me { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; max-width: 280px; }
+.me label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.me input { padding: 8px 10px; font-size: 16px; }
+.me input.set { border-color: var(--good); }
+.sent { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 18px; align-items: center; }
+.sent .sent-txt { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+#sent-face { width: 120px; }
 @media (prefers-reduced-motion: reduce) { #face .band, #face .band.out-l, #face .band.out-r { transition: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <nav class="topnav"><a href="../">&larr; Menu</a></nav>
+  <div class="bar">
+    <div class="me">
+      <label for="first">Prénom</label>
+      <input type="text" id="first" autocomplete="given-name" placeholder="Ton prénom" maxlength="40">
+    </div>
+    <nav class="links"><a href="../">&larr; Menu</a><a class="next" href="classement.html">Voter &rarr;</a></nav>
+  </div>
   <header>
     <h1>Cadavre <span>exquis</span></h1>
-    <p class="tag">Le front de l'un, les yeux d'un autre, le nez et la bouche de deux autres : fabrique les collègues les plus improbables.</p>
+    <p class="tag">Le front de l'un, les yeux d'un autre, le nez et la bouche de deux autres : fabrique la créature la plus improbable, envoie-la avec ton prénom, puis vote pour la meilleure.</p>
   </header>
 
   <section class="panel atelier">
@@ -51,18 +66,34 @@
         <button class="btn primary wide" id="dice" type="button">🎲 Tout mélanger</button>
         <button class="btn" id="same" type="button">Remettre d'aplomb</button>
         <button class="btn" id="save" type="button">Enregistrer l'image</button>
+        <button class="btn primary wide" id="send" type="button">Envoyer ma créature</button>
       </div>
       <p class="status" id="status" aria-live="polite"></p>
     </div>
   </section>
+
+  <section class="panel sent" id="v-sent" hidden>
+    <div id="sent-face"></div>
+    <div class="sent-txt">
+      <h2>Ta créature est envoyée</h2>
+      <p class="hint" id="sent-msg"></p>
+      <a class="btn primary" href="classement.html">Voir les créatures et voter &rarr;</a>
+    </div>
+  </section>
 </div>
 
+<script src="../assets/site.js"></script>
 <script src="noms.js"></script>
 <script src="commun.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
-  const { NOMS, PARTIES, LARGE, HAUT, src, visage, surnom } = window.CE;
+  const { NOMS, PARTIES, LARGE, HAUT, src, visage, surnom, JEU, ref, cleanName } = window.CE;
+  const KEY = "ce-envoi";
+  // Sur le téléphone : { name, mix, sent } ; une fois envoyée, la créature ne se change plus.
+  let me = { name: "", mix: null, sent: false };
+  try { const d = JSON.parse(localStorage.getItem(KEY) || "null"); if (d && typeof d.name === "string") me = Object.assign(me, d); } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(me)); } catch (e) {} };
   const T = NOMS.length, face = $("face");
   const rnd = () => Math.floor(Math.random() * T);
   // 4 collègues différents au départ
@@ -146,7 +177,50 @@
     } catch (e) { $("status").textContent = "L'image n'a pas pu être créée. Recharge la page et réessaie."; }
   };
 
+  /* ---------- Prénom et envoi ---------- */
+  function renderSent() {
+    $("first").value = me.name; $("first").disabled = me.sent; $("first").classList.toggle("set", !!me.name);
+    $("send").hidden = me.sent;
+    $("v-sent").hidden = !me.sent;
+    if (me.sent && me.mix) {
+      visage($("sent-face"), me.mix);
+      $("sent-msg").textContent = `« ${surnom(me.mix)} », signée ${me.name}. Tu peux continuer à jouer avec l'atelier, mais tu n'envoies qu'une créature.`;
+    }
+  }
+  $("first").addEventListener("input", () => { me.name = cleanName($("first").value); save(); $("first").classList.toggle("set", !!me.name); });
+  $("send").onclick = async () => {
+    if (!me.name) { $("status").textContent = "Écris d'abord ton prénom en haut à gauche."; $("first").focus(); return; }
+    $("send").disabled = true; $("status").textContent = "Envoi de ta créature…";
+    try {
+      const { fs, db } = await window.chargerFirebase();
+      const r = ref(fs, db, JEU, me.name);
+      if ((await fs.getDoc(r)).exists()) {
+        $("status").textContent = `Le prénom « ${me.name} » a déjà envoyé une créature. Ajoute l'initiale de ton nom (ex. ${me.name} M.).`;
+        $("send").disabled = false; $("first").focus(); return;
+      }
+      const mixToSend = mix.slice();
+      await fs.setDoc(r, { tierlist: JEU, participant: me.name, mix: mixToSend, date: Date.now() });
+      me.mix = mixToSend; me.sent = true; save();
+      $("status").textContent = ""; renderSent();
+      $("v-sent").scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (e) {
+      $("status").textContent = "L'envoi n'a pas marché (connexion ?). Réessaie.";
+    }
+    $("send").disabled = false;
+  };
+
   draw();
+  renderSent();
+  // Créature supprimée de Firebase depuis (test, nouvelle manche) : on oublie l'envoi pour pouvoir renvoyer.
+  if (me.sent && me.name) {
+    (async () => {
+      try {
+        const { fs, db } = await window.chargerFirebase();
+        if ((await fs.getDoc(ref(fs, db, JEU, me.name))).exists()) return;
+      } catch (e) { return; }
+      me.sent = false; me.mix = null; save(); renderSent();
+    })();
+  }
 })();
 </script>
 </body>
