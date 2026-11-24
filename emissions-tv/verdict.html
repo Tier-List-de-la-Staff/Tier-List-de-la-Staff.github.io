@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Verdict</title>
+<!-- Ce fichier est identique pour toutes les tier lists : tout ce qui change est dans config.js -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../assets/verdict.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="../">&larr; Menu</a>
+    <a class="next" href="./">Faire ma tier list &rarr;</a>
+  </nav>
+  <header class="top">
+    <p class="eyebrow" id="eyebrow">Verdict</p>
+    <h1>Qui pense comme le groupe, et qui n'en fait qu'à sa tête ?</h1>
+    <p class="lead" id="lead"></p>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <nav class="toc" aria-label="Sections">
+      <a href="#ecarts">Les écarts</a><a href="#artistes" id="toc-art">Le classement</a><a href="#grille">La grille des votes</a><a href="#methode">La méthode</a>
+    </nav>
+  </header>
+
+  <div class="empty" id="empty" hidden></div>
+
+  <section id="ecarts" aria-labelledby="h-ecarts">
+    <div class="sec-head">
+      <h2 id="h-ecarts">L'écart de chaque votant à la moyenne</h2>
+      <p id="metric-desc"></p>
+    </div>
+    <div class="seg" role="group" aria-label="Mesure de l'écart">
+      <button type="button" id="m-mae" aria-pressed="true">Écart moyen</button>
+      <button type="button" id="m-dis" aria-pressed="false">Goûts seuls</button>
+    </div>
+    <div class="ecarts">
+      <div class="chart">
+        <div class="cols axis-head"><span></span><span class="eyebrow" style="font-family:var(--font-body)">Votant</span><span class="ah"><span class="m">&larr; Mainstream</span><span class="o">Original &rarr;</span></span><span></span></div>
+        <div id="vrows"></div>
+        <div class="cols ticks"><span></span><span></span><div class="tt" id="ticks"></div><span></span></div>
+        <div class="chart-note"><span class="k"><span class="dash"></span><span id="avg-label"></span></span><span>Touchez un votant pour voir son profil.</span></div>
+      </div>
+      <aside class="profile" id="profile" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section id="artistes" aria-labelledby="h-artistes">
+    <div class="sec-head">
+      <h2 id="h-artistes">Le classement</h2>
+      <p id="art-desc"></p>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="arts" id="arts"></div>
+  </section>
+
+  <section id="grille" aria-labelledby="h-grille">
+    <div class="sec-head">
+      <h2 id="h-grille">La grille complète des votes</h2>
+      <p id="grille-desc"></p>
+    </div>
+    <div class="gridwrap"><table class="vg" id="vg"></table></div>
+  </section>
+
+  <section id="methode" aria-labelledby="h-methode">
+    <div class="sec-head"><h2 id="h-methode">La méthode</h2></div>
+    <div class="method">
+      <div><h3>Le barème</h3><p id="meth-bareme"></p></div>
+      <div><h3>L'écart moyen</h3><p id="meth-mae"></p></div>
+      <div><h3>Les goûts seuls</h3><p>L'écart moyen mélange sévérité et goûts. La seconde mesure compare uniquement l'ordre, avec une corrélation de rang : 0 pour un ordre identique à celui du groupe, 1 pour un ordre sans aucun lien.</p></div>
+      <div><h3>Les cas particuliers</h3><p id="meth-cas"></p></div>
+    </div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script src="../assets/site.js"></script>
+<script src="config.js"></script>
+<script src="votes-origine.js"></script>
+<script src="../assets/stats.js"></script>
+<script src="../assets/verdict.js"></script>
+</body>
+</html>
